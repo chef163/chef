@@ -11,6 +11,7 @@ local ShoeBuilder = require(Shared:WaitForChild("ShoeBuilder"))
 local MapBuilder = {}
 
 local wallParts = {}
+local boards = {}
 local spawnLocation
 
 local FONT = Enum.Font.FredokaOne
@@ -182,7 +183,7 @@ function MapBuilder.build()
 
 	-- Витрины с кроссовками по бокам спавна
 	for index, sneaker in ipairs(Config.Sneakers) do
-		if index > 10 then
+		if index > 12 then
 			break
 		end
 		local side = if index % 2 == 1 then -1 else 1
@@ -269,6 +270,67 @@ function MapBuilder.build()
 		wallParts[i] = wall
 	end
 
+	-- Табличка «Зона 2» перед первой стеной второй зоны
+	for i, wallConfig in ipairs(Config.Walls) do
+		if wallConfig.zone == 2 then
+			local zoneSign = makePart({
+				Name = "ZoneSign",
+				Size = Vector3.new(1, 1, 1),
+				Position = Vector3.new(0, M.WallHeight + 10, wallZ(i) + 4),
+				Transparency = 1,
+				CanCollide = false,
+				CanQuery = false,
+				Parent = decor,
+			})
+			makeBillboard(zoneSign, Vector2.new(40, 8), Vector3.zero, {
+				{ text = "🌍 ЗОНА 2: МИР МЕМОВ", color = Color3.fromRGB(0, 255, 200) },
+				{ text = "здесь стены по-настоящему толстые 💀", color = Color3.new(1, 1, 1) },
+			})
+			break
+		end
+	end
+
+	-- Доски лидеров за спавном (повёрнуты к дорожке)
+	for _, info in ipairs({
+		{ key = "Wins", title = "🏆 ТОП ПОБЕД", x = -18 },
+		{ key = "Power", title = "⚡ ТОП СИЛЫ", x = 18 },
+	}) do
+		local board = makePart({
+			Name = "Leaderboard_" .. info.key,
+			Size = Vector3.new(22, 18, 1),
+			Position = Vector3.new(info.x, 12, startZ - 3),
+			Color = Color3.fromRGB(25, 25, 35),
+			Parent = decor,
+		})
+		makePart({
+			Name = "BoardLeg",
+			Size = Vector3.new(1, 3, 1),
+			Position = Vector3.new(info.x, 1.5, startZ - 3),
+			Color = Color3.fromRGB(25, 25, 35),
+			Parent = decor,
+		})
+		local gui = Instance.new("SurfaceGui")
+		gui.Name = "Board"
+		gui.Face = Enum.NormalId.Front
+		gui.SizingMode = Enum.SurfaceGuiSizingMode.PixelsPerStud
+		gui.PixelsPerStud = 25
+		gui.LightInfluence = 0
+		gui.Parent = board
+		makeLabel(gui, "Title", info.title, UDim2.fromScale(0.9, 0.12), UDim2.fromScale(0.05, 0.02), Color3.fromRGB(255, 230, 60))
+		local rows = {}
+		for row = 1, Config.LEADERBOARD_SIZE do
+			rows[row] = makeLabel(
+				gui,
+				"Row" .. row,
+				if row == 1 then "загрузка..." else "",
+				UDim2.fromScale(0.9, 0.075),
+				UDim2.fromScale(0.05, 0.16 + (row - 1) * 0.082)
+			)
+			rows[row].TextXAlignment = Enum.TextXAlignment.Left
+		end
+		boards[info.key] = rows
+	end
+
 	-- Финиш
 	local trophy = makePart({
 		Name = "Trophy",
@@ -290,6 +352,11 @@ end
 
 function MapBuilder.getWall(index)
 	return wallParts[index]
+end
+
+-- строки доски лидеров: key = "Wins" или "Power"
+function MapBuilder.getBoardRows(key)
+	return boards[key]
 end
 
 function MapBuilder.getSpawn()

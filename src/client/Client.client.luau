@@ -6,6 +6,7 @@ local UserInputService = game:GetService("UserInputService")
 local TweenService = game:GetService("TweenService")
 local RunService = game:GetService("RunService")
 local SoundService = game:GetService("SoundService")
+local MarketplaceService = game:GetService("MarketplaceService")
 local Debris = game:GetService("Debris")
 
 local player = Players.LocalPlayer
@@ -13,10 +14,12 @@ local player = Players.LocalPlayer
 local Shared = ReplicatedStorage:WaitForChild("Shared")
 local Config = require(Shared:WaitForChild("Config"))
 local Format = require(Shared:WaitForChild("Format"))
+local PetBuilder = require(Shared:WaitForChild("PetBuilder"))
 
 local Remotes = ReplicatedStorage:WaitForChild("Remotes")
 local HitRemote = Remotes:WaitForChild("Hit")
 local BuyRemote = Remotes:WaitForChild("BuySneaker")
+local BuyPetRemote = Remotes:WaitForChild("BuyPet")
 local RebirthRemote = Remotes:WaitForChild("Rebirth")
 local StateRemote = Remotes:WaitForChild("State")
 local NotifyRemote = Remotes:WaitForChild("Notify")
@@ -33,6 +36,8 @@ local state = {
 	wins = 0,
 	rebirths = 0,
 	sneakers = {},
+	pets = {},
+	passes = {},
 	broken = 0,
 	currentHp = nil,
 	gain = Config.BASE_GAIN,
@@ -194,7 +199,7 @@ local gainLabel = label({
 local leftPanel = new("Frame", {
 	AnchorPoint = Vector2.new(0, 0.5),
 	Position = UDim2.new(0, 10, 0.5, 0),
-	Size = UDim2.fromOffset(210, 400),
+	Size = UDim2.fromOffset(210, 480),
 	BackgroundTransparency = 1,
 	Parent = gui,
 }, {
@@ -233,30 +238,44 @@ local rebirthLabel = label({
 
 local shopButton = button({
 	Text = "👟 Кроссовки",
-	Size = UDim2.fromOffset(210, 54),
+	Size = UDim2.fromOffset(210, 50),
 	BackgroundColor3 = Color3.fromRGB(255, 120, 40),
 	LayoutOrder = 2,
 	Parent = leftPanel,
 })
+local petButton = button({
+	Text = "🐾 Питомцы",
+	Size = UDim2.fromOffset(210, 50),
+	BackgroundColor3 = Color3.fromRGB(240, 90, 160),
+	LayoutOrder = 3,
+	Parent = leftPanel,
+})
+local passButton = button({
+	Text = "💎 Game Pass",
+	Size = UDim2.fromOffset(210, 50),
+	BackgroundColor3 = Color3.fromRGB(0, 170, 120),
+	LayoutOrder = 4,
+	Parent = leftPanel,
+})
 local rebirthButton = button({
 	Text = "🔁 Ребёрт",
-	Size = UDim2.fromOffset(210, 54),
+	Size = UDim2.fromOffset(210, 50),
 	BackgroundColor3 = Color3.fromRGB(170, 80, 255),
-	LayoutOrder = 3,
+	LayoutOrder = 5,
 	Parent = leftPanel,
 })
 local autoButton = button({
 	Text = "🤖 Авто: ВЫКЛ",
-	Size = UDim2.fromOffset(210, 48),
+	Size = UDim2.fromOffset(210, 44),
 	BackgroundColor3 = Color3.fromRGB(90, 90, 110),
-	LayoutOrder = 4,
+	LayoutOrder = 6,
 	Parent = leftPanel,
 })
 local soundButton = button({
 	Text = "🔊 Звук: ВКЛ",
-	Size = UDim2.fromOffset(210, 48),
+	Size = UDim2.fromOffset(210, 44),
 	BackgroundColor3 = Color3.fromRGB(60, 150, 230),
-	LayoutOrder = 5,
+	LayoutOrder = 7,
 	Parent = leftPanel,
 })
 
@@ -313,43 +332,44 @@ local function makeWindow(title, height)
 	return window
 end
 
-local shopWindow = makeWindow("👟 МАГАЗИН КРОССОВОК", 470)
-local shopList = new("ScrollingFrame", {
-	Position = UDim2.fromOffset(12, 66),
-	Size = UDim2.new(1, -24, 1, -78),
-	BackgroundTransparency = 1,
-	BorderSizePixel = 0,
-	ScrollBarThickness = 8,
-	AutomaticCanvasSize = Enum.AutomaticSize.Y,
-	CanvasSize = UDim2.new(),
-	ZIndex = 21,
-	Parent = shopWindow,
-}, {
-	new("UIListLayout", { Padding = UDim.new(0, 8), SortOrder = Enum.SortOrder.LayoutOrder }),
-})
+local function makeList(window)
+	return new("ScrollingFrame", {
+		Position = UDim2.fromOffset(12, 66),
+		Size = UDim2.new(1, -24, 1, -78),
+		BackgroundTransparency = 1,
+		BorderSizePixel = 0,
+		ScrollBarThickness = 8,
+		AutomaticCanvasSize = Enum.AutomaticSize.Y,
+		CanvasSize = UDim2.new(),
+		ZIndex = 21,
+		Parent = window,
+	}, {
+		new("UIListLayout", { Padding = UDim.new(0, 8), SortOrder = Enum.SortOrder.LayoutOrder }),
+	})
+end
 
-local shopRows = {}
-for index, sneaker in ipairs(Config.Sneakers) do
+-- строка товара: иконка, название, описание, кнопка
+local function makeRow(list, index, title, icon, iconColor, iconStroke, onBuy)
 	local row = new("Frame", {
 		Size = UDim2.new(1, -12, 0, 76),
 		BackgroundColor3 = Color3.fromRGB(45, 45, 60),
 		LayoutOrder = index,
 		ZIndex = 22,
-		Parent = shopList,
+		Parent = list,
 	}, { corner(12) })
 	new("Frame", {
 		Size = UDim2.fromOffset(60, 60),
 		Position = UDim2.fromOffset(8, 8),
-		BackgroundColor3 = sneaker.color,
+		BackgroundColor3 = iconColor,
 		ZIndex = 23,
 		Parent = row,
 	}, {
 		corner(10),
-		stroke(sneaker.accent or Color3.new(1, 1, 1), 3),
-		label({ Text = "👟", Size = UDim2.fromScale(1, 1), ZIndex = 24 }),
+		stroke(iconStroke or Color3.new(1, 1, 1), 3),
+		label({ Text = icon, Size = UDim2.fromScale(1, 1), ZIndex = 24 }),
 	})
 	label({
-		Text = sneaker.name,
+		Text = title,
 		Size = UDim2.new(1, -230, 0, 32),
 		Position = UDim2.fromOffset(78, 6),
 		TextXAlignment = Enum.TextXAlignment.Left,
@@ -373,10 +393,44 @@ for index, sneaker in ipairs(Config.Sneakers) do
 		ZIndex = 23,
 		Parent = row,
 	})
-	buy.MouseButton1Click:Connect(function()
+	buy.MouseButton1Click:Connect(onBuy)
+	return { info = info, buy = buy }
+end
+
+local shopWindow = makeWindow("👟 МАГАЗИН КРОССОВОК", 470)
+local shopList = makeList(shopWindow)
+local shopRows = {}
+for index, sneaker in ipairs(Config.Sneakers) do
+	shopRows[sneaker.id] = makeRow(shopList, index, sneaker.name, "👟", sneaker.color, sneaker.accent, function()
 		BuyRemote:FireServer(sneaker.id)
 	end)
-	shopRows[sneaker.id] = { info = info, buy = buy }
+end
+
+local petWindow = makeWindow("🐾 ПИТОМЦЫ", 470)
+local petList = makeList(petWindow)
+local petRows = {}
+for index, pet in ipairs(Config.Pets) do
+	petRows[pet.id] = makeRow(petList, index, pet.name, pet.emoji, pet.color, nil, function()
+		BuyPetRemote:FireServer(pet.id)
+	end)
+end
+
+local passWindow = makeWindow("💎 GAME PASS", 340)
+local passList = makeList(passWindow)
+local passRows = {}
+local popup -- объявлен ниже
+for index, pass in ipairs(Config.GamePasses) do
+	passRows[pass.key] = makeRow(passList, index, pass.name, "💎", Color3.fromRGB(0, 170, 120), nil, function()
+		if state.passes[pass.key] then
+			return
+		end
+		if not pass.id or pass.id <= 0 then
+			popup("Game Pass ещё не создан — впиши ID в Config 🛠️", Color3.fromRGB(255, 200, 120))
+			return
+		end
+		MarketplaceService:PromptGamePassPurchase(player, pass.id)
+	end)
+	passRows[pass.key].info.Text = pass.desc
 end
 
 ---------------------------------------------------------------------
@@ -408,7 +462,7 @@ end)
 ---------------------------------------------------------------------
 -- Мемные попапы и эффекты
 ---------------------------------------------------------------------
-local function popup(text, color, big)
+function popup(text, color, big)
 	local size = if big then UDim2.fromOffset(700, 130) else UDim2.fromOffset(420, 70)
 	local popupLabel = label({
 		Text = text,
@@ -553,6 +607,37 @@ local function updateShop()
 	end
 end
 
+local function updatePets()
+	local best = Config.getBestPet(state.pets)
+	for _, pet in ipairs(Config.Pets) do
+		local row = petRows[pet.id]
+		row.info.Text = "x" .. pet.mult .. " к приросту силы"
+		if best and best.id == pet.id then
+			row.buy.Text = "⭐ Летает"
+			row.buy.BackgroundColor3 = Color3.fromRGB(255, 170, 0)
+		elseif state.pets[pet.id] then
+			row.buy.Text = "✅ Есть"
+			row.buy.BackgroundColor3 = Color3.fromRGB(90, 90, 110)
+		else
+			row.buy.Text = "💰 " .. Format.num(pet.price)
+			row.buy.BackgroundColor3 = if state.cash >= pet.price then Color3.fromRGB(60, 200, 90) else Color3.fromRGB(110, 110, 120)
+		end
+	end
+end
+
+local function updatePasses()
+	for _, pass in ipairs(Config.GamePasses) do
+		local row = passRows[pass.key]
+		if state.passes[pass.key] then
+			row.buy.Text = "✅ Куплено"
+			row.buy.BackgroundColor3 = Color3.fromRGB(90, 90, 110)
+		else
+			row.buy.Text = "R$ Купить"
+			row.buy.BackgroundColor3 = Color3.fromRGB(0, 170, 120)
+		end
+	end
+end
+
 local function updateRebirth()
 	local cost = Config.getRebirthCost(state.rebirths)
 	local nextBonus = math.floor((1 + (state.rebirths + 1) * Config.REBIRTH_BONUS) * 100)
@@ -571,6 +656,8 @@ local function updateUI()
 	winsLabel.Text = "🏆 Победы: " .. Format.num(state.wins)
 	rebirthLabel.Text = "🔁 Ребёрты: " .. Format.num(state.rebirths)
 	updateShop()
+	updatePets()
+	updatePasses()
 	updateRebirth()
 end
 
@@ -617,7 +704,7 @@ end)
 
 task.spawn(function()
 	while true do
-		task.wait(Config.AUTO_HIT_INTERVAL)
+		task.wait(if state.passes.FastAuto then Config.AUTO_HIT_FAST_INTERVAL else Config.AUTO_HIT_INTERVAL)
 		if autoHit then
 			local root = getRoot()
 			local wall = getWall(state.broken + 1)
@@ -631,14 +718,28 @@ end)
 ---------------------------------------------------------------------
 -- Кнопки
 ---------------------------------------------------------------------
-shopButton.MouseButton1Click:Connect(function()
-	shopWindow.Visible = not shopWindow.Visible
-	rebirthWindow.Visible = false
-end)
+
+local windows = { shopWindow, petWindow, passWindow, rebirthWindow }
+local function toggleWindow(window)
+	local show = not window.Visible
+	for _, other in ipairs(windows) do
+		other.Visible = false
+	end
+	window.Visible = show
+end
 
 rebirthButton.MouseButton1Click:Connect(function()
-	rebirthWindow.Visible = not rebirthWindow.Visible
-	shopWindow.Visible = false
+	toggleWindow(rebirthWindow)
+end)
+petButton.MouseButton1Click:Connect(function()
+	toggleWindow(petWindow)
+end)
+passButton.MouseButton1Click:Connect(function()
+	toggleWindow(passWindow)
+end)
+
+shopButton.MouseButton1Click:Connect(function()
+	toggleWindow(shopWindow)
 end)
 
 autoButton.MouseButton1Click:Connect(function()
@@ -662,6 +763,8 @@ StateRemote.OnClientEvent:Connect(function(newState)
 	local oldPower = state.power
 	state = newState
 	state.sneakers = state.sneakers or {}
+	state.pets = state.pets or {}
+	state.passes = state.passes or {}
 	updateUI()
 	updateWalls()
 	if state.power > oldPower then
@@ -696,6 +799,15 @@ NotifyRemote.OnClientEvent:Connect(function(kind, data)
 		local sneaker = Config.getSneaker(data.id)
 		playSound(Config.Sounds.Buy, 0.9)
 		popup("👟 " .. (sneaker and sneaker.name or "Кроссы") .. " (ур. " .. data.level .. ")", Color3.fromRGB(0, 255, 200))
+	elseif kind == "pet" then
+		local pet = Config.getPet(data.id)
+		playSound(Config.Sounds.Buy, 0.9)
+		if pet then
+			popup(pet.emoji .. " " .. pet.name .. " теперь с тобой! x" .. pet.mult, Color3.fromRGB(255, 150, 220), true)
+		end
+	elseif kind == "pass" then
+		playSound(Config.Sounds.Win, 1)
+		popup("💎 " .. data.name .. " активирован!", Color3.fromRGB(0, 255, 200), true)
 	elseif kind == "rebirth" then
 		playSound(Config.Sounds.Rebirth, 1)
 		popup("🔁 ПЕРЕРОЖДЕНИЕ #" .. data.rebirths .. " — ТЫ СТАЛ СИЛЬНЕЕ", Color3.fromRGB(200, 140, 255), true)
@@ -721,6 +833,50 @@ RunService.RenderStepped:Connect(function(dt)
 		if model:IsA("Model") and base then
 			model:PivotTo(CFrame.new(base + Vector3.new(0, math.sin(elapsed * 2) * 0.4, 0)) * CFrame.Angles(0, elapsed, 0))
 		end
+	end
+end)
+
+---------------------------------------------------------------------
+-- 🐾 Питомцы летают за всеми игроками (рисуются у каждого клиента)
+---------------------------------------------------------------------
+local petModels = {} -- [Player] = { id, model }
+local petFolder = new("Folder", { Name = "LocalPets", Parent = workspace })
+
+RunService.RenderStepped:Connect(function(dt)
+	for _, other in ipairs(Players:GetPlayers()) do
+		local petId = other:GetAttribute("PetId")
+		local current = petModels[other]
+		if current and current.id ~= petId then
+			current.model:Destroy()
+			petModels[other] = nil
+			current = nil
+		end
+		local character = other.Character
+		local root = character and character:FindFirstChild("HumanoidRootPart")
+		local pet = petId and Config.getPet(petId)
+		if pet and root then
+			if not current then
+				local model = PetBuilder.build(pet)
+				model:PivotTo(root.CFrame)
+				model.Parent = petFolder
+				current = { id = petId, model = model }
+				petModels[other] = current
+			end
+			local bob = math.sin(elapsed * 3 + other.UserId) * 0.4
+			local target = root.CFrame * CFrame.new(3, 1.5 + bob, 3)
+			current.model:PivotTo(current.model:GetPivot():Lerp(target, math.clamp(dt * 8, 0, 1)))
+		elseif current then
+			current.model:Destroy()
+			petModels[other] = nil
+		end
+	end
+end)
+
+Players.PlayerRemoving:Connect(function(other)
+	local current = petModels[other]
+	if current then
+		current.model:Destroy()
+		petModels[other] = nil
 	end
 end)
 

@@ -1,0 +1,2331 @@
+<roblox version="4">
+  <Item class="ReplicatedStorage" referent="0">
+    <Properties>
+      <string name="Name">ReplicatedStorage</string>
+    </Properties>
+    <Item class="Folder" referent="1">
+      <Properties>
+        <string name="Name">Shared</string>
+      </Properties>
+      <Item class="ModuleScript" referent="2">
+        <Properties>
+          <string name="Name">Config</string>
+          <string name="Source"><![CDATA[-- ⚙️ Все настройки игры в одном месте.
+-- Меняй цифры, названия, цвета и звуки здесь — остальные скрипты подхватят сами.
+
+local Config = {}
+
+---------------------------------------------------------------------
+-- Основной баланс
+---------------------------------------------------------------------
+Config.BASE_GAIN = 1 -- +1 силы каждую секунду (суть режима «+1»)
+Config.GAIN_INTERVAL = 1 -- раз во сколько секунд начисляется сила
+Config.HIT_RANGE = 12 -- с какого расстояния (в студах) можно бить стену
+Config.HIT_COOLDOWN = 0.12 -- минимальная пауза между ударами
+Config.AUTO_HIT_INTERVAL = 0.25 -- скорость авто-удара
+Config.PRICE_GROWTH = 1.55 -- во сколько раз дорожает кроссовок после каждой покупки
+Config.REBIRTH_BONUS = 0.5 -- +50% к приросту силы за каждое перерождение
+Config.REBIRTH_BASE_COST = 1e6 -- цена первого перерождения
+Config.REBIRTH_COST_GROWTH = 5 -- во сколько раз дорожает каждое следующее перерождение
+
+Config.DATASTORE_NAME = "SneakerWall_v1"
+Config.AUTOSAVE_INTERVAL = 90
+
+---------------------------------------------------------------------
+-- Размеры карты
+---------------------------------------------------------------------
+Config.Map = {
+	TrackWidth = 80, -- ширина дорожки
+	SpawnDepth = 41, -- насколько спавн-зона уходит назад от центра
+	FirstWallZ = -60, -- где стоит первая стена
+	Spacing = 70, -- расстояние между стенами
+	WallHeight = 40,
+	WallThickness = 6,
+	FinishLength = 60, -- длина финишной зоны после последней стены
+}
+
+---------------------------------------------------------------------
+-- Стены: чем дальше, тем больше HP и награда
+---------------------------------------------------------------------
+Config.Walls = {
+	{ name = "Стена Нуба", caption = "даже бабушка сломает", hp = 25, reward = 10, color = Color3.fromRGB(120, 200, 120) },
+	{ name = "BRUH Стена", caption = "bruh... 💀", hp = 150, reward = 40, color = Color3.fromRGB(90, 170, 230) },
+	{ name = "Сигма Стена", caption = "только для сигм 🗿", hp = 800, reward = 150, color = Color3.fromRGB(150, 110, 230) },
+	{ name = "Стена из Огайо", caption = "only in Ohio 🌽", hp = 4000, reward = 600, color = Color3.fromRGB(230, 180, 60) },
+	{ name = "Скибиди Стена", caption = "dop dop yes yes 🚽", hp = 20000, reward = 2500, color = Color3.fromRGB(230, 110, 70) },
+	{ name = "Стена Ризза", caption = "+1000 rizz 😏", hp = 100000, reward = 10000, color = Color3.fromRGB(230, 80, 150) },
+	{ name = "Амогус Стена", caption = "ඞ ты импостер?", hp = 500000, reward = 45000, color = Color3.fromRGB(220, 50, 50) },
+	{ name = "Стена Чилл Гая", caption = "просто чилловый парень 🐶", hp = 2500000, reward = 200000, color = Color3.fromRGB(110, 90, 70) },
+	{ name = "Стена Гигачада", caption = "ГИГАЧАД ОДОБРЯЕТ 💪", hp = 15000000, reward = 1000000, color = Color3.fromRGB(60, 60, 70) },
+	-- 🌍 Зона 2: «Мир Мемов»
+	{ name = "Стена Доге", caption = "such wall, much wow 🐕", hp = 100000000, reward = 5000000, color = Color3.fromRGB(225, 175, 90), zone = 2 },
+	{ name = "Шлёпа Стена", caption = "большой шлёпа одобряет 🐱", hp = 600000000, reward = 25000000, color = Color3.fromRGB(200, 150, 110), zone = 2 },
+	{ name = "Стена Хомяка", caption = "тапай быстрее 🐹", hp = 4000000000, reward = 120000000, color = Color3.fromRGB(240, 160, 60), zone = 2 },
+	{ name = "Стена Пепе", caption = "feels good man 🐸", hp = 25000000000, reward = 600000000, color = Color3.fromRGB(80, 170, 70), zone = 2 },
+	{ name = "Стена Шрека", caption = "что ты делаешь в моём болоте?! 🧅", hp = 150000000000, reward = 3000000000, color = Color3.fromRGB(120, 160, 40), zone = 2 },
+	{
+		name = "ФИНАЛЬНАЯ СТЕНА +1",
+		caption = "сломай — и ты легенда 🏆",
+		hp = 1000000000000,
+		reward = 15000000000,
+		color = Color3.fromRGB(255, 200, 40),
+		material = Enum.Material.Neon,
+		zone = 2,
+	},
+}
+
+---------------------------------------------------------------------
+-- Кроссовки (пародийные названия — настоящие бренды в Roblox могут снести за авторские права)
+-- gain  — сколько силы в секунду добавляет КАЖДЫЙ уровень
+-- price — стартовая цена; дальше каждая покупка дороже в PRICE_GROWTH раз
+---------------------------------------------------------------------
+Config.Sneakers = {
+	{ id = "slippers", name = "Тапки Бабушки", price = 25, gain = 1, color = Color3.fromRGB(200, 90, 90), accent = Color3.fromRGB(255, 220, 220), sole = Color3.fromRGB(120, 60, 60) },
+	{ id = "af1", name = "Air Farce 1", price = 150, gain = 3, color = Color3.fromRGB(245, 245, 245), accent = Color3.fromRGB(210, 210, 210) },
+	{ id = "jordon", name = "Jordon 4 «Bred»", price = 750, gain = 10, color = Color3.fromRGB(30, 30, 30), accent = Color3.fromRGB(210, 30, 40) },
+	{ id = "yeezus", name = "Yeezus Boost 350", price = 4000, gain = 35, color = Color3.fromRGB(215, 195, 160), accent = Color3.fromRGB(180, 160, 125), sole = Color3.fromRGB(235, 225, 205) },
+	{ id = "dunk", name = "Dunk Low «Ohio»", price = 20000, gain = 120, color = Color3.fromRGB(60, 140, 70), accent = Color3.fromRGB(250, 210, 50) },
+	{ id = "nb", name = "New Balanse 550", price = 100000, gain = 400, color = Color3.fromRGB(240, 240, 235), accent = Color3.fromRGB(30, 110, 60) },
+	{ id = "balenci", name = "Balenci-Aga Triple S", price = 500000, gain = 1500, color = Color3.fromRGB(150, 150, 160), accent = Color3.fromRGB(90, 90, 100), sole = Color3.fromRGB(200, 200, 200) },
+	{ id = "offwait", name = "Off-Wait «Sigma»", price = 2500000, gain = 5000, color = Color3.fromRGB(250, 250, 250), accent = Color3.fromRGB(255, 130, 0) },
+	{ id = "airmag", name = "Air Mag «Back to Ohio»", price = 15000000, gain = 20000, color = Color3.fromRGB(170, 175, 185), accent = Color3.fromRGB(0, 200, 255), accentMaterial = Enum.Material.Neon },
+	{ id = "gigachad", name = "Золотые Кроссы Гигачада", price = 100000000, gain = 80000, color = Color3.fromRGB(255, 200, 40), accent = Color3.fromRGB(255, 240, 150), material = Enum.Material.Foil, accentMaterial = Enum.Material.Neon },
+	{ id = "skibidi", name = "Skibidi Foamposite", price = 700000000, gain = 350000, color = Color3.fromRGB(40, 40, 60), accent = Color3.fromRGB(160, 60, 255), accentMaterial = Enum.Material.Neon },
+	{ id = "shrek", name = "Кроссы Шрека «Болото»", price = 5000000000, gain = 1500000, color = Color3.fromRGB(110, 160, 40), accent = Color3.fromRGB(90, 60, 30), sole = Color3.fromRGB(70, 50, 30) },
+}
+
+---------------------------------------------------------------------
+-- 🐾 Питомцы: покупаются один раз, летают за игроком и умножают прирост силы.
+-- Работает самый сильный купленный питомец. После ребёрта питомцы остаются!
+-- style: "ears" (собачка/котик), "amogus", "toilet", "plain"
+---------------------------------------------------------------------
+Config.Pets = {
+	{ id = "doge", name = "Доге", emoji = "🐕", price = 500, mult = 1.25, color = Color3.fromRGB(225, 175, 90), style = "ears" },
+	{ id = "floppa", name = "Шлёпа", emoji = "🐱", price = 5000, mult = 1.5, color = Color3.fromRGB(200, 150, 110), style = "ears" },
+	{ id = "amogus", name = "Амогус", emoji = "ඞ", price = 50000, mult = 2, color = Color3.fromRGB(220, 50, 50), style = "amogus" },
+	{ id = "hamster", name = "Хомяк-Тапалка", emoji = "🐹", price = 500000, mult = 3, color = Color3.fromRGB(240, 160, 60), style = "ears" },
+	{ id = "toilet", name = "Скибиди Туалет", emoji = "🚽", price = 5000000, mult = 5, color = Color3.fromRGB(240, 240, 245), style = "toilet" },
+	{ id = "chillguy", name = "Чилл Гай", emoji = "🐶", price = 50000000, mult = 8, color = Color3.fromRGB(150, 120, 90), style = "ears" },
+	{ id = "pepe", name = "Пепе", emoji = "🐸", price = 500000000, mult = 12, color = Color3.fromRGB(80, 170, 70), style = "plain" },
+	{ id = "gigachad", name = "Гигачад", emoji = "💪", price = 5000000000, mult = 20, color = Color3.fromRGB(60, 60, 70), style = "plain", material = Enum.Material.Neon },
+}
+
+---------------------------------------------------------------------
+-- 💎 Game Pass'ы (покупка за Robux).
+-- 1) Опубликуй игру  2) Creator Hub → твоя игра → Monetization → Passes → Create
+-- 3) Скопируй ID пасса и впиши вместо 0.  Пока стоит 0 — кнопка просто подскажет, что пасс не настроен.
+---------------------------------------------------------------------
+Config.GamePasses = {
+	{ key = "DoublePower", id = 0, name = "x2 Сила ⚡", desc = "Сила растёт в 2 раза быстрее навсегда" },
+	{ key = "DoubleCash", id = 0, name = "x2 Деньги 💰", desc = "В 2 раза больше денег за каждую стену" },
+	{ key = "FastAuto", id = 0, name = "Турбо авто-удар 🤖", desc = "Авто-удар бьёт в 2 раза чаще" },
+}
+Config.AUTO_HIT_FAST_INTERVAL = 0.13
+
+---------------------------------------------------------------------
+-- 🏆 Таблицы лидеров на карте (глобальные, между всеми серверами)
+---------------------------------------------------------------------
+Config.LEADERBOARD_UPDATE = 60 -- раз во сколько секунд обновлять
+Config.LEADERBOARD_SIZE = 10
+
+---------------------------------------------------------------------
+-- 🔊 Звуки
+-- Найди мемы в Toolbox → Audio (Creator Store): "vine boom", "bruh", "cha ching",
+-- "airhorn", "sad violin", "among us", "rizz", "sheesh" и т.п. → скопируй ID
+-- и впиши "rbxassetid://ID". В любой пункт можно положить несколько звуков —
+-- будет играть случайный. Пустая строка = звук выключен.
+-- Сейчас стоят встроенные звуки Roblox, чтобы всё работало сразу.
+---------------------------------------------------------------------
+Config.Sounds = {
+	Hit = { "rbxasset://sounds/swordslash.wav" }, -- удар по стене
+	WallBreak = { "rbxasset://sounds/electronicpingshort.wav" }, -- сюда «Vine Boom»
+	Buy = { "rbxasset://sounds/electronicpingshort.wav" }, -- сюда «Cha-ching»
+	Win = { "rbxasset://sounds/electronicpingshort.wav" }, -- сюда «Airhorn» / «Wow»
+	Rebirth = { "rbxasset://sounds/electronicpingshort.wav" }, -- сюда «Oh yeah»
+	Error = { "rbxasset://sounds/uuhhh.mp3" }, -- сюда «Bruh»
+	Memes = {}, -- случайный мем после сломанной стены: bruh, sus, sad violin, fart...
+	Music = "", -- фоновая музыка (один ID)
+}
+
+-- Мемные надписи, которые вылетают на экран
+Config.MemeTexts = {
+	"BRUH 💀",
+	"SHEESH 🥶",
+	"W",
+	"+1000 AURA ✨",
+	"СИГМА 🗿",
+	"GG EZ",
+	"ONLY IN OHIO 🌽",
+	"+RIZZ 😏",
+	"SKIBIDI 🚽",
+	"ЭТО ЖЕ ИМБА",
+	"ИЗИ КАТКА",
+	"АМОГУС ඞ",
+	"ГИГАЧАД 💪",
+	"ЧИЛЛ 🐶",
+	"МЕГА ХАРОШ",
+}
+
+---------------------------------------------------------------------
+-- Формулы (используются и сервером, и клиентом)
+---------------------------------------------------------------------
+local sneakerById = {}
+for index, sneaker in ipairs(Config.Sneakers) do
+	sneaker.index = index
+	sneakerById[sneaker.id] = sneaker
+end
+
+function Config.getSneaker(id)
+	return sneakerById[id]
+end
+
+function Config.getPrice(sneaker, level)
+	return math.floor(sneaker.price * Config.PRICE_GROWTH ^ (level or 0))
+end
+
+local petById = {}
+for index, pet in ipairs(Config.Pets) do
+	pet.index = index
+	petById[pet.id] = pet
+end
+
+function Config.getPet(id)
+	return petById[id]
+end
+
+-- самый сильный купленный питомец
+function Config.getBestPet(ownedPets)
+	local best
+	for _, pet in ipairs(Config.Pets) do
+		if ownedPets and ownedPets[pet.id] then
+			best = pet
+		end
+	end
+	return best
+end
+
+-- data = { sneakers, rebirths, pets }, passes = { DoublePower = true, ... }
+function Config.getGain(data, passes)
+	local gain = Config.BASE_GAIN
+	for _, sneaker in ipairs(Config.Sneakers) do
+		gain += sneaker.gain * ((data.sneakers and data.sneakers[sneaker.id]) or 0)
+	end
+	gain *= 1 + (data.rebirths or 0) * Config.REBIRTH_BONUS
+	local pet = Config.getBestPet(data.pets)
+	if pet then
+		gain *= pet.mult
+	end
+	if passes and passes.DoublePower then
+		gain *= 2
+	end
+	return gain
+end
+
+function Config.getRebirthCost(rebirths)
+	return math.floor(Config.REBIRTH_BASE_COST * Config.REBIRTH_COST_GROWTH ^ (rebirths or 0))
+end
+
+return Config
+]]></string>
+        </Properties>
+      </Item>
+      <Item class="ModuleScript" referent="3">
+        <Properties>
+          <string name="Name">Format</string>
+          <string name="Source"><![CDATA[-- Красивые числа: 1500 -> 1.5K, 2300000 -> 2.3M
+
+local Format = {}
+
+local SUFFIXES = { "", "K", "M", "B", "T", "Qa", "Qi", "Sx", "Sp", "Oc", "No", "Dc" }
+
+function Format.num(value)
+	local n = tonumber(value) or 0
+	local sign = if n < 0 then "-" else ""
+	n = math.abs(n)
+
+	if n < 1000 then
+		return sign .. tostring(math.floor(n))
+	end
+
+	local i = 1
+	while n >= 1000 and i < #SUFFIXES do
+		n /= 1000
+		i += 1
+	end
+
+	local text
+	if n < 10 then
+		text = string.format("%.2f", n)
+	elseif n < 100 then
+		text = string.format("%.1f", n)
+	else
+		text = string.format("%d", math.floor(n))
+	end
+
+	if string.find(text, ".", 1, true) then
+		text = string.gsub(text, "0+$", "")
+		text = string.gsub(text, "%.$", "")
+	end
+
+	return sign .. text .. SUFFIXES[i]
+end
+
+return Format
+]]></string>
+        </Properties>
+      </Item>
+      <Item class="ModuleScript" referent="4">
+        <Properties>
+          <string name="Name">PetBuilder</string>
+          <string name="Source"><![CDATA[-- 🐾 Собирает мемного питомца из деталей. Смотрит в -Z, pivot — центр тела.
+
+local PetBuilder = {}
+
+local WHITE = Color3.new(1, 1, 1)
+local BLACK = Color3.new(0, 0, 0)
+
+local function addPart(model, props)
+	local part = Instance.new("Part")
+	part.Anchored = true
+	part.CanCollide = false
+	part.CanQuery = false
+	part.CanTouch = false
+	part.CastShadow = false
+	part.TopSurface = Enum.SurfaceType.Smooth
+	part.BottomSurface = Enum.SurfaceType.Smooth
+	part.Material = Enum.Material.SmoothPlastic
+	for key, value in pairs(props) do
+		part[key] = value
+	end
+	part.Parent = model
+	return part
+end
+
+local function eyes(model, y, z, spread, size)
+	for _, side in ipairs({ -1, 1 }) do
+		addPart(model, {
+			Shape = Enum.PartType.Ball,
+			Size = Vector3.one * size,
+			CFrame = CFrame.new(side * spread, y, z),
+			Color = WHITE,
+		})
+		addPart(model, {
+			Shape = Enum.PartType.Ball,
+			Size = Vector3.one * size * 0.5,
+			CFrame = CFrame.new(side * spread, y, z - size * 0.35),
+			Color = BLACK,
+		})
+	end
+end
+
+function PetBuilder.build(pet)
+	local model = Instance.new("Model")
+	model.Name = pet.name
+	local material = pet.material or Enum.Material.SmoothPlastic
+	local style = pet.style or "plain"
+	local body
+
+	if style == "amogus" then
+		body = addPart(model, { Size = Vector3.new(1.6, 2, 1.4), CFrame = CFrame.new(0, 0, 0), Color = pet.color, Material = material })
+		addPart(model, { Size = Vector3.new(1.1, 0.55, 0.3), CFrame = CFrame.new(0, 0.35, -0.75), Color = Color3.fromRGB(150, 220, 255), Material = Enum.Material.Glass })
+		addPart(model, { Size = Vector3.new(1.1, 1.2, 0.5), CFrame = CFrame.new(0, -0.1, 0.9), Color = pet.color, Material = material })
+		for _, side in ipairs({ -1, 1 }) do
+			addPart(model, { Size = Vector3.new(0.6, 0.6, 0.8), CFrame = CFrame.new(side * 0.45, -1.1, 0), Color = pet.color, Material = material })
+		end
+	elseif style == "toilet" then
+		body = addPart(model, { Size = Vector3.new(1.6, 1.2, 1.8), CFrame = CFrame.new(0, -0.6, 0), Color = pet.color, Material = material })
+		addPart(model, { Size = Vector3.new(1.8, 1.8, 0.5), CFrame = CFrame.new(0, 0.2, 0.9), Color = pet.color, Material = material })
+		addPart(model, {
+			Shape = Enum.PartType.Ball,
+			Size = Vector3.one * 1.2,
+			CFrame = CFrame.new(0, 0.3, -0.1),
+			Color = Color3.fromRGB(240, 200, 170),
+		})
+		eyes(model, 0.45, -0.6, 0.25, 0.3)
+	else
+		body = addPart(model, { Shape = Enum.PartType.Ball, Size = Vector3.one * 2, CFrame = CFrame.new(), Color = pet.color, Material = material })
+		eyes(model, 0.3, -0.8, 0.35, 0.45)
+		if style == "ears" then
+			for _, side in ipairs({ -1, 1 }) do
+				addPart(model, {
+					Size = Vector3.new(0.5, 0.7, 0.3),
+					CFrame = CFrame.new(side * 0.55, 1, 0) * CFrame.Angles(0, 0, math.rad(side * -20)),
+					Color = pet.color,
+					Material = material,
+				})
+			end
+			addPart(model, { Shape = Enum.PartType.Ball, Size = Vector3.one * 0.35, CFrame = CFrame.new(0, -0.05, -0.95), Color = BLACK })
+		end
+	end
+
+	model.PrimaryPart = body
+	model.WorldPivot = CFrame.new()
+	return model
+end
+
+return PetBuilder
+]]></string>
+        </Properties>
+      </Item>
+      <Item class="ModuleScript" referent="5">
+        <Properties>
+          <string name="Name">ShoeBuilder</string>
+          <string name="Source"><![CDATA[-- 👟 Собирает модельку кроссовка из деталей.
+-- Используется для витрин на спавне и для кроссовок на ногах игрока.
+-- Носок смотрит в -Z (как персонаж), точка опоры (pivot) — низ подошвы.
+
+local ShoeBuilder = {}
+
+local function addPart(model, className, size, position, color, material)
+	local part = Instance.new(className)
+	part.Size = size
+	part.CFrame = CFrame.new(position)
+	part.Color = color
+	part.Material = material or Enum.Material.SmoothPlastic
+	part.Anchored = true
+	part.CanCollide = false
+	part.TopSurface = Enum.SurfaceType.Smooth
+	part.BottomSurface = Enum.SurfaceType.Smooth
+	part.Parent = model
+	return part
+end
+
+function ShoeBuilder.build(sneaker, scale)
+	local s = scale or 1
+	local function v(x, y, z)
+		return Vector3.new(x * s, y * s, z * s)
+	end
+
+	local main = sneaker.color
+	local accent = sneaker.accent or Color3.new(1, 1, 1)
+	local soleColor = sneaker.sole or Color3.new(1, 1, 1)
+	local mainMaterial = sneaker.material
+	local accentMaterial = sneaker.accentMaterial
+
+	local model = Instance.new("Model")
+	model.Name = sneaker.name
+
+	local sole = addPart(model, "Part", v(1, 0.25, 1.6), v(0, 0.125, 0), soleColor)
+	addPart(model, "Part", v(0.92, 0.6, 1), v(0, 0.55, 0.28), main, mainMaterial) -- верх
+	addPart(model, "WedgePart", v(0.92, 0.45, 0.6), v(0, 0.475, -0.5), main, mainMaterial) -- носок
+	addPart(model, "Part", v(0.04, 0.22, 0.9), v(0.47, 0.5, 0.05), accent, accentMaterial) -- полоска справа
+	addPart(model, "Part", v(0.04, 0.22, 0.9), v(-0.47, 0.5, 0.05), accent, accentMaterial) -- полоска слева
+	addPart(model, "Part", v(0.5, 0.06, 0.5), v(0, 0.88, 0.05), Color3.new(1, 1, 1)) -- шнурки
+	addPart(model, "Part", v(0.5, 0.35, 0.12), v(0, 0.95, 0.75), accent, accentMaterial) -- задник
+
+	model.PrimaryPart = sole
+	model.WorldPivot = CFrame.new()
+	return model
+end
+
+return ShoeBuilder
+]]></string>
+        </Properties>
+      </Item>
+    </Item>
+  </Item>
+  <Item class="ServerScriptService" referent="6">
+    <Properties>
+      <string name="Name">ServerScriptService</string>
+    </Properties>
+    <Item class="Folder" referent="7">
+      <Properties>
+        <string name="Name">Server</string>
+      </Properties>
+      <Item class="Script" referent="8">
+        <Properties>
+          <string name="Name">GameServer</string>
+          <token name="RunContext">0</token>
+          <string name="Source"><![CDATA[-- 🧠 Серверная логика: +1 силы в секунду, удары по стенам, магазин кроссовок,
+-- перерождения и сохранение прогресса.
+
+local Players = game:GetService("Players")
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local DataStoreService = game:GetService("DataStoreService")
+local MarketplaceService = game:GetService("MarketplaceService")
+
+local Shared = ReplicatedStorage:WaitForChild("Shared")
+local Config = require(Shared:WaitForChild("Config"))
+local Format = require(Shared:WaitForChild("Format"))
+local ShoeBuilder = require(Shared:WaitForChild("ShoeBuilder"))
+local MapBuilder = require(script.Parent:WaitForChild("MapBuilder"))
+
+---------------------------------------------------------------------
+-- Remote-события
+---------------------------------------------------------------------
+local remotes = Instance.new("Folder")
+remotes.Name = "Remotes"
+
+local function newRemote(name)
+	local remote = Instance.new("RemoteEvent")
+	remote.Name = name
+	remote.Parent = remotes
+	return remote
+end
+
+local HitRemote = newRemote("Hit")
+local BuyRemote = newRemote("BuySneaker")
+local BuyPetRemote = newRemote("BuyPet")
+local RebirthRemote = newRemote("Rebirth")
+local StateRemote = newRemote("State")
+local NotifyRemote = newRemote("Notify")
+remotes.Parent = ReplicatedStorage
+
+MapBuilder.build()
+
+---------------------------------------------------------------------
+-- Сохранения
+---------------------------------------------------------------------
+local store
+do
+	local ok, result = pcall(function()
+		return DataStoreService:GetDataStore(Config.DATASTORE_NAME)
+	end)
+	if ok then
+		store = result
+	else
+		warn("[SneakerWall] DataStore недоступен, прогресс не сохранится:", result)
+	end
+end
+
+local profiles = {} -- [Player] = { data, session, stats, loaded, canSave }
+
+local function defaultData()
+	return { power = 0, cash = 0, wins = 0, rebirths = 0, sneakers = {}, pets = {} }
+end
+
+local function loadData(player)
+	local data = defaultData()
+	if not store then
+		return data, false
+	end
+
+	local ok, saved = pcall(function()
+		return store:GetAsync("u_" .. player.UserId)
+	end)
+	if not ok then
+		warn("[SneakerWall] Не удалось загрузить данные", player.Name, saved)
+		return data, false
+	end
+
+	if type(saved) == "table" then
+		data.power = tonumber(saved.power) or 0
+		data.cash = tonumber(saved.cash) or 0
+		data.wins = tonumber(saved.wins) or 0
+		data.rebirths = tonumber(saved.rebirths) or 0
+		if type(saved.sneakers) == "table" then
+			for id, level in pairs(saved.sneakers) do
+				if Config.getSneaker(id) and type(level) == "number" then
+					data.sneakers[id] = level
+				end
+			end
+		end
+		if type(saved.pets) == "table" then
+			for id, owned in pairs(saved.pets) do
+				if Config.getPet(id) and owned == true then
+					data.pets[id] = true
+				end
+			end
+		end
+	end
+	return data, true
+end
+
+local function saveData(player, profile)
+	if not store or not profile.canSave then
+		return
+	end
+	local d = profile.data
+	local ok, err = pcall(function()
+		store:SetAsync("u_" .. player.UserId, {
+			power = d.power,
+			cash = d.cash,
+			wins = d.wins,
+			rebirths = d.rebirths,
+			sneakers = d.sneakers,
+			pets = d.pets,
+		})
+	end)
+	if not ok then
+		warn("[SneakerWall] Не удалось сохранить", player.Name, err)
+	end
+end
+
+---------------------------------------------------------------------
+-- Лидерборд и состояние
+---------------------------------------------------------------------
+local function setupLeaderstats(player, profile)
+	local leaderstats = Instance.new("Folder")
+	leaderstats.Name = "leaderstats"
+
+	local function stat(className, name)
+		local value = Instance.new(className)
+		value.Name = name
+		value.Parent = leaderstats
+		return value
+	end
+
+	profile.stats = {
+		power = stat("StringValue", "⚡ Сила"),
+		cash = stat("StringValue", "💰 Деньги"),
+		wins = stat("IntValue", "🏆 Победы"),
+		rebirths = stat("IntValue", "🔁 Ребёрты"),
+	}
+	leaderstats.Parent = player
+end
+
+local function refreshLeaderstats(profile)
+	local d, stats = profile.data, profile.stats
+	stats.power.Value = Format.num(d.power)
+	stats.cash.Value = Format.num(d.cash)
+	stats.wins.Value = d.wins
+	stats.rebirths.Value = d.rebirths
+end
+
+local function sendState(player)
+	local profile = profiles[player]
+	if not profile then
+		return
+	end
+	local d, s = profile.data, profile.session
+	refreshLeaderstats(profile)
+	StateRemote:FireClient(player, {
+		power = d.power,
+		cash = d.cash,
+		wins = d.wins,
+		rebirths = d.rebirths,
+		sneakers = d.sneakers,
+		pets = d.pets,
+		passes = profile.passes,
+		broken = s.broken,
+		currentHp = s.currentHp,
+		gain = Config.getGain(d, profile.passes),
+	})
+end
+
+local function notify(player, kind, payload)
+	NotifyRemote:FireClient(player, kind, payload or {})
+end
+
+local function teleportToSpawn(player)
+	local character = player.Character
+	local spawn = MapBuilder.getSpawn()
+	if character and spawn then
+		character:PivotTo(spawn.CFrame + Vector3.new(0, 4, 0))
+	end
+end
+
+---------------------------------------------------------------------
+-- Кроссовки на ногах игрока (видны всем)
+---------------------------------------------------------------------
+local function bestSneaker(data)
+	local best
+	for _, sneaker in ipairs(Config.Sneakers) do
+		if (data.sneakers[sneaker.id] or 0) > 0 then
+			best = sneaker
+		end
+	end
+	return best
+end
+
+local function equipShoes(player)
+	local profile = profiles[player]
+	local character = player.Character
+	if not profile or not character then
+		return
+	end
+
+	local old = character:FindFirstChild("SneakerFolder")
+	if old then
+		old:Destroy()
+	end
+
+	local sneaker = bestSneaker(profile.data)
+	if not sneaker then
+		return
+	end
+
+	local folder = Instance.new("Folder")
+	folder.Name = "SneakerFolder"
+	folder.Parent = character
+
+	for _, side in ipairs({ "Left", "Right" }) do
+		local foot = character:FindFirstChild(side .. "Foot") or character:FindFirstChild(side .. " Leg")
+		if foot and foot:IsA("BasePart") then
+			local shoe = ShoeBuilder.build(sneaker, 0.9)
+			shoe:PivotTo(foot.CFrame * CFrame.new(0, -foot.Size.Y / 2 - 0.05, 0))
+			shoe.Parent = folder
+			for _, part in ipairs(shoe:GetDescendants()) do
+				if part:IsA("BasePart") then
+					part.CanCollide = false
+					part.CanQuery = false
+					part.CanTouch = false
+					part.Massless = true
+					local weld = Instance.new("WeldConstraint")
+					weld.Part0 = foot
+					weld.Part1 = part
+					weld.Parent = part
+					part.Anchored = false
+				end
+			end
+		end
+	end
+end
+
+---------------------------------------------------------------------
+-- Питомец: сервер только ставит атрибут, летающую модельку рисуют клиенты
+---------------------------------------------------------------------
+local function equipPet(player)
+	local profile = profiles[player]
+	if not profile then
+		return
+	end
+	local pet = Config.getBestPet(profile.data.pets)
+	player:SetAttribute("PetId", if pet then pet.id else nil)
+end
+
+---------------------------------------------------------------------
+-- Game Pass'ы
+---------------------------------------------------------------------
+local function loadPasses(player, profile)
+	for _, pass in ipairs(Config.GamePasses) do
+		if pass.id and pass.id > 0 then
+			local ok, owns = pcall(function()
+				return MarketplaceService:UserOwnsGamePassAsync(player.UserId, pass.id)
+			end)
+			if ok and owns then
+				profile.passes[pass.key] = true
+			end
+		end
+	end
+end
+
+MarketplaceService.PromptGamePassPurchaseFinished:Connect(function(player, passId, purchased)
+	local profile = profiles[player]
+	if not purchased or not profile then
+		return
+	end
+	for _, pass in ipairs(Config.GamePasses) do
+		if pass.id == passId then
+			profile.passes[pass.key] = true
+			notify(player, "pass", { name = pass.name })
+			sendState(player)
+		end
+	end
+end)
+
+---------------------------------------------------------------------
+-- Вход / выход игроков
+---------------------------------------------------------------------
+local function onPlayerAdded(player)
+	local profile = {
+		data = defaultData(),
+		session = { broken = 0, currentHp = nil, lastHit = 0 },
+		passes = {},
+		loaded = false,
+		canSave = false,
+	}
+	profiles[player] = profile
+	setupLeaderstats(player, profile)
+
+	player.CharacterAdded:Connect(function(character)
+		character:WaitForChild("HumanoidRootPart", 10)
+		task.wait(0.5)
+		if profiles[player] == profile then
+			equipShoes(player)
+		end
+	end)
+
+	local data, canSave = loadData(player)
+	loadPasses(player, profile)
+	if profiles[player] ~= profile then
+		return -- игрок успел выйти
+	end
+	profile.data = data
+	profile.canSave = canSave
+	profile.loaded = true
+
+	if player.Character then
+		equipShoes(player)
+	end
+	equipPet(player)
+	sendState(player)
+end
+
+Players.PlayerAdded:Connect(onPlayerAdded)
+for _, player in ipairs(Players:GetPlayers()) do
+	task.spawn(onPlayerAdded, player)
+end
+
+Players.PlayerRemoving:Connect(function(player)
+	local profile = profiles[player]
+	profiles[player] = nil
+	if profile and profile.loaded then
+		saveData(player, profile)
+	end
+end)
+
+game:BindToClose(function()
+	local pending = 0
+	for player, profile in pairs(profiles) do
+		if profile.loaded then
+			pending += 1
+			task.spawn(function()
+				saveData(player, profile)
+				pending -= 1
+			end)
+		end
+	end
+	local started = os.clock()
+	while pending > 0 and os.clock() - started < 25 do
+		task.wait(0.1)
+	end
+end)
+
+-- Автосохранение
+task.spawn(function()
+	while true do
+		task.wait(Config.AUTOSAVE_INTERVAL)
+		for player, profile in pairs(profiles) do
+			if profile.loaded then
+				task.spawn(saveData, player, profile)
+			end
+		end
+	end
+end)
+
+---------------------------------------------------------------------
+-- +1 каждую секунду
+---------------------------------------------------------------------
+task.spawn(function()
+	while true do
+		task.wait(Config.GAIN_INTERVAL)
+		for player, profile in pairs(profiles) do
+			if profile.loaded then
+				profile.data.power += Config.getGain(profile.data, profile.passes)
+				sendState(player)
+			end
+		end
+	end
+end)
+
+---------------------------------------------------------------------
+-- Удар по стене
+---------------------------------------------------------------------
+HitRemote.OnServerEvent:Connect(function(player, wallIndex)
+	local profile = profiles[player]
+	if not profile or not profile.loaded or typeof(wallIndex) ~= "number" then
+		return
+	end
+	local d, s = profile.data, profile.session
+
+	-- ломать можно только следующую по порядку стену
+	if wallIndex ~= s.broken + 1 then
+		return
+	end
+	local wallConfig = Config.Walls[wallIndex]
+	local wall = MapBuilder.getWall(wallIndex)
+	if not wallConfig or not wall then
+		return
+	end
+
+	local now = os.clock()
+	if now - s.lastHit < Config.HIT_COOLDOWN * 0.8 then
+		return
+	end
+	s.lastHit = now
+
+	local character = player.Character
+	local root = character and character:FindFirstChild("HumanoidRootPart")
+	if not root then
+		return
+	end
+	local distance = math.abs(root.Position.Z - wall.Position.Z) - wall.Size.Z / 2
+	if distance > Config.HIT_RANGE + 4 then
+		return
+	end
+
+	local damage = math.max(1, math.floor(d.power))
+	s.currentHp = (s.currentHp or wallConfig.hp) - damage
+
+	if s.currentHp > 0 then
+		notify(player, "hit", { wall = wallIndex, hp = s.currentHp, damage = damage })
+		return
+	end
+
+	-- стена сломана!
+	s.broken = wallIndex
+	s.currentHp = nil
+	local reward = wallConfig.reward * (if profile.passes.DoubleCash then 2 else 1)
+	d.cash += reward
+	notify(player, "break", { wall = wallIndex, reward = reward, damage = damage })
+
+	if wallIndex >= #Config.Walls then
+		d.wins += 1
+		notify(player, "win", { wins = d.wins })
+		sendState(player)
+		task.delay(3, function()
+			if profiles[player] ~= profile or s.broken < #Config.Walls then
+				return
+			end
+			s.broken = 0
+			s.currentHp = nil
+			teleportToSpawn(player)
+			sendState(player)
+		end)
+	else
+		sendState(player)
+	end
+end)
+
+---------------------------------------------------------------------
+-- Покупка кроссовок (каждая покупка дороже предыдущей)
+---------------------------------------------------------------------
+BuyRemote.OnServerEvent:Connect(function(player, sneakerId)
+	local profile = profiles[player]
+	if not profile or not profile.loaded or typeof(sneakerId) ~= "string" then
+		return
+	end
+	local sneaker = Config.getSneaker(sneakerId)
+	if not sneaker then
+		return
+	end
+
+	local d = profile.data
+	local level = d.sneakers[sneakerId] or 0
+	local price = Config.getPrice(sneaker, level)
+	if d.cash < price then
+		notify(player, "error", { text = "Не хватает денег! 💸 Нужно " .. Format.num(price) })
+		return
+	end
+
+	d.cash -= price
+	d.sneakers[sneakerId] = level + 1
+	equipShoes(player)
+	notify(player, "buy", { id = sneakerId, level = level + 1 })
+	sendState(player)
+end)
+
+---------------------------------------------------------------------
+-- Покупка питомцев (один раз, навсегда)
+---------------------------------------------------------------------
+BuyPetRemote.OnServerEvent:Connect(function(player, petId)
+	local profile = profiles[player]
+	if not profile or not profile.loaded or typeof(petId) ~= "string" then
+		return
+	end
+	local pet = Config.getPet(petId)
+	local d = profile.data
+	if not pet or d.pets[petId] then
+		return
+	end
+	if d.cash < pet.price then
+		notify(player, "error", { text = "Не хватает денег! 💸 Нужно " .. Format.num(pet.price) })
+		return
+	end
+
+	d.cash -= pet.price
+	d.pets[petId] = true
+	equipPet(player)
+	notify(player, "pet", { id = petId })
+	sendState(player)
+end)
+
+---------------------------------------------------------------------
+-- Перерождение: сброс силы, денег и кроссовок ради постоянного множителя
+---------------------------------------------------------------------
+RebirthRemote.OnServerEvent:Connect(function(player)
+	local profile = profiles[player]
+	if not profile or not profile.loaded then
+		return
+	end
+	local d, s = profile.data, profile.session
+	local cost = Config.getRebirthCost(d.rebirths)
+	if d.cash < cost then
+		notify(player, "error", { text = "Для ребёрта нужно 💰 " .. Format.num(cost) })
+		return
+	end
+
+	d.rebirths += 1
+	d.power = 0
+	d.cash = 0
+	d.sneakers = {} -- питомцы остаются
+	s.broken = 0
+	s.currentHp = nil
+
+	equipShoes(player)
+	teleportToSpawn(player)
+	notify(player, "rebirth", { rebirths = d.rebirths })
+	sendState(player)
+end)
+
+---------------------------------------------------------------------
+-- 🏆 Глобальные таблицы лидеров на карте
+---------------------------------------------------------------------
+local nameCache = {}
+local function getName(userId)
+	if nameCache[userId] then
+		return nameCache[userId]
+	end
+	local ok, name = pcall(function()
+		return Players:GetNameFromUserIdAsync(userId)
+	end)
+	local result = if ok and name then name else "Игрок " .. tostring(userId)
+	nameCache[userId] = result
+	return result
+end
+
+local boardStores = {}
+for _, key in ipairs({ "Wins", "Power" }) do
+	local ok, result = pcall(function()
+		return DataStoreService:GetOrderedDataStore("SneakerWall_Top" .. key)
+	end)
+	if ok then
+		boardStores[key] = result
+	end
+end
+
+local function boardValue(key, data)
+	local value = if key == "Wins" then data.wins else data.power
+	return math.floor(math.clamp(value, 0, 2 ^ 53))
+end
+
+local function updateBoard(key)
+	local rows = MapBuilder.getBoardRows(key)
+	local ordered = boardStores[key]
+	if not rows then
+		return
+	end
+
+	local ok = pcall(function()
+		assert(ordered, "no store")
+		for player, profile in pairs(profiles) do
+			if profile.loaded and profile.canSave then
+				ordered:SetAsync(tostring(player.UserId), boardValue(key, profile.data))
+			end
+		end
+		local page = ordered:GetSortedAsync(false, Config.LEADERBOARD_SIZE):GetCurrentPage()
+		for i = 1, Config.LEADERBOARD_SIZE do
+			local entry = page[i]
+			if entry then
+				local medal = if i == 1 then "🥇" elseif i == 2 then "🥈" elseif i == 3 then "🥉" else "#" .. i
+				local userId = tonumber(entry.key) or 0
+				rows[i].Text = medal .. " " .. getName(userId) .. " — " .. Format.num(entry.value)
+			else
+				rows[i].Text = ""
+			end
+		end
+	end)
+
+	if not ok then
+		-- В Studio без API Services показываем локальный топ текущего сервера
+		local list = {}
+		for player, profile in pairs(profiles) do
+			if profile.loaded then
+				table.insert(list, { name = player.Name, value = boardValue(key, profile.data) })
+			end
+		end
+		table.sort(list, function(a, b)
+			return a.value > b.value
+		end)
+		for i = 1, Config.LEADERBOARD_SIZE do
+			local entry = list[i]
+			rows[i].Text = if entry then "#" .. i .. " " .. entry.name .. " — " .. Format.num(entry.value) else ""
+		end
+		if #list < Config.LEADERBOARD_SIZE then
+			rows[Config.LEADERBOARD_SIZE].Text = "(топ этого сервера)"
+		end
+	end
+end
+
+task.spawn(function()
+	task.wait(5)
+	while true do
+		updateBoard("Wins")
+		updateBoard("Power")
+		task.wait(Config.LEADERBOARD_UPDATE)
+	end
+end)
+]]></string>
+        </Properties>
+      </Item>
+      <Item class="ModuleScript" referent="9">
+        <Properties>
+          <string name="Name">MapBuilder</string>
+          <string name="Source"><![CDATA[-- 🗺️ Строит карту кодом: спавн, витрины кроссовок, дорожку со стенами и финиш.
+-- Ничего не нужно расставлять руками в Studio.
+
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+
+local Shared = ReplicatedStorage:WaitForChild("Shared")
+local Config = require(Shared:WaitForChild("Config"))
+local Format = require(Shared:WaitForChild("Format"))
+local ShoeBuilder = require(Shared:WaitForChild("ShoeBuilder"))
+
+local MapBuilder = {}
+
+local wallParts = {}
+local boards = {}
+local spawnLocation
+
+local FONT = Enum.Font.FredokaOne
+
+local function makePart(props)
+	local part = Instance.new(props.ClassName or "Part")
+	part.Anchored = true
+	part.TopSurface = Enum.SurfaceType.Smooth
+	part.BottomSurface = Enum.SurfaceType.Smooth
+	part.Material = Enum.Material.SmoothPlastic
+	for key, value in pairs(props) do
+		if key ~= "ClassName" and key ~= "Parent" then
+			part[key] = value
+		end
+	end
+	part.Parent = props.Parent
+	return part
+end
+
+local function makeLabel(parent, name, text, size, position, color)
+	local label = Instance.new("TextLabel")
+	label.Name = name
+	label.Text = text
+	label.Size = size
+	label.Position = position
+	label.BackgroundTransparency = 1
+	label.TextColor3 = color or Color3.new(1, 1, 1)
+	label.TextStrokeTransparency = 0
+	label.TextScaled = true
+	label.Font = FONT
+	label.Parent = parent
+	return label
+end
+
+local function makeBillboard(parent, studsSize, offset, lines)
+	local billboard = Instance.new("BillboardGui")
+	billboard.Size = UDim2.new(studsSize.X, 0, studsSize.Y, 0)
+	billboard.StudsOffset = offset
+	billboard.LightInfluence = 0
+	billboard.MaxDistance = 250
+	billboard.Parent = parent
+
+	local lineHeight = 1 / #lines
+	for i, line in ipairs(lines) do
+		makeLabel(
+			billboard,
+			"Line" .. i,
+			line.text,
+			UDim2.fromScale(1, lineHeight),
+			UDim2.fromScale(0, (i - 1) * lineHeight),
+			line.color
+		)
+	end
+	return billboard
+end
+
+local function darken(color, amount)
+	return color:Lerp(Color3.new(0, 0, 0), amount or 0.35)
+end
+
+local function wallZ(i)
+	return Config.Map.FirstWallZ - (i - 1) * Config.Map.Spacing
+end
+
+function MapBuilder.build()
+	local M = Config.Map
+	local width = M.TrackWidth
+	local wallCount = #Config.Walls
+	local startZ = M.SpawnDepth
+	local endZ = wallZ(wallCount) - M.FinishLength
+
+	local old = workspace:FindFirstChild("SneakerMap")
+	if old then
+		old:Destroy()
+	end
+
+	local root = Instance.new("Folder")
+	root.Name = "SneakerMap"
+
+	local decor = Instance.new("Folder")
+	decor.Name = "Decor"
+	decor.Parent = root
+
+	local wallsFolder = Instance.new("Folder")
+	wallsFolder.Name = "Walls"
+	wallsFolder.Parent = root
+
+	local displays = Instance.new("Folder")
+	displays.Name = "Displays"
+	displays.Parent = root
+
+	-- Пол: спавн, зона за каждой стеной, финиш
+	local function floor(z1, z2, color, material)
+		return makePart({
+			Name = "Floor",
+			Size = Vector3.new(width, 2, z1 - z2),
+			Position = Vector3.new(0, -1, (z1 + z2) / 2),
+			Color = color,
+			Material = material or Enum.Material.SmoothPlastic,
+			Parent = decor,
+		})
+	end
+
+	floor(startZ, wallZ(1), Color3.fromRGB(60, 60, 80))
+	for i = 2, wallCount do
+		floor(wallZ(i - 1), wallZ(i), darken(Config.Walls[i - 1].color))
+	end
+	floor(wallZ(wallCount), endZ, Color3.fromRGB(255, 200, 40), Enum.Material.Neon)
+
+	-- Невидимые границы, чтобы нельзя было обойти стены
+	local length = startZ - endZ
+	local centerZ = (startZ + endZ) / 2
+	for _, side in ipairs({ -1, 1 }) do
+		makePart({
+			Name = "Barrier",
+			Size = Vector3.new(2, 80, length),
+			Position = Vector3.new(side * (width / 2 + 1), 40, centerZ),
+			Transparency = 1,
+			Parent = decor,
+		})
+		makePart({
+			Name = "Rail",
+			Size = Vector3.new(1, 1, length),
+			Position = Vector3.new(side * (width / 2 - 0.5), 0.5, centerZ),
+			Color = Color3.fromRGB(0, 255, 200),
+			Material = Enum.Material.Neon,
+			CanCollide = false,
+			Parent = decor,
+		})
+	end
+	for _, z in ipairs({ startZ + 1, endZ - 1 }) do
+		makePart({
+			Name = "Barrier",
+			Size = Vector3.new(width + 4, 80, 2),
+			Position = Vector3.new(0, 40, z),
+			Transparency = 1,
+			Parent = decor,
+		})
+	end
+
+	-- Спавн
+	spawnLocation = makePart({
+		ClassName = "SpawnLocation",
+		Name = "Spawn",
+		Size = Vector3.new(14, 1, 14),
+		Position = Vector3.new(0, 0.5, 15),
+		Color = Color3.fromRGB(0, 255, 200),
+		Material = Enum.Material.Neon,
+		Neutral = true,
+		Duration = 0,
+		Parent = decor,
+	})
+
+	-- Большая вывеска над спавном
+	local signAnchor = makePart({
+		Name = "SignAnchor",
+		Size = Vector3.new(1, 1, 1),
+		Position = Vector3.new(0, 24, -25),
+		Transparency = 1,
+		CanCollide = false,
+		CanQuery = false,
+		Parent = decor,
+	})
+	makeBillboard(signAnchor, Vector2.new(46, 14), Vector3.zero, {
+		{ text = "+1 ⚡ СИЛА КАЖДУЮ СЕКУНДУ", color = Color3.fromRGB(255, 230, 60) },
+		{ text = "ЛОМАЙ СТЕНЫ 🧱 → ПОКУПАЙ КРОССЫ 👟", color = Color3.new(1, 1, 1) },
+		{ text = "кликай по стене или жми УДАР", color = Color3.fromRGB(0, 255, 200) },
+	})
+
+	-- Витрины с кроссовками по бокам спавна
+	for index, sneaker in ipairs(Config.Sneakers) do
+		if index > 12 then
+			break
+		end
+		local side = if index % 2 == 1 then -1 else 1
+		local row = math.ceil(index / 2)
+		local x = side * (width / 2 - 6)
+		local z = 30 - (row - 1) * 15
+
+		local pedestal = makePart({
+			Name = "Pedestal",
+			Size = Vector3.new(6, 3, 6),
+			Position = Vector3.new(x, 1.5, z),
+			Color = Color3.fromRGB(35, 35, 45),
+			Parent = decor,
+		})
+		makePart({
+			Name = "PedestalGlow",
+			Size = Vector3.new(6.4, 0.3, 6.4),
+			Position = Vector3.new(x, 3.1, z),
+			Color = sneaker.accent or sneaker.color,
+			Material = Enum.Material.Neon,
+			CanCollide = false,
+			Parent = decor,
+		})
+		makeBillboard(pedestal, Vector2.new(10, 4), Vector3.new(0, 9, 0), {
+			{ text = sneaker.name, color = Color3.new(1, 1, 1) },
+			{ text = "+" .. Format.num(sneaker.gain) .. " ⚡/сек", color = Color3.fromRGB(255, 230, 60) },
+			{ text = "💰 от " .. Format.num(sneaker.price), color = Color3.fromRGB(120, 255, 120) },
+		})
+
+		local shoe = ShoeBuilder.build(sneaker, 3)
+		local basePos = Vector3.new(x, 4, z)
+		shoe:PivotTo(CFrame.new(basePos))
+		shoe:SetAttribute("BasePos", basePos)
+		shoe.Parent = displays
+	end
+
+	-- Стены
+	for i, wallConfig in ipairs(Config.Walls) do
+		local wall = makePart({
+			Name = "Wall_" .. i,
+			Size = Vector3.new(width, M.WallHeight, M.WallThickness),
+			Position = Vector3.new(0, M.WallHeight / 2, wallZ(i)),
+			Color = wallConfig.color,
+			Material = wallConfig.material or Enum.Material.Brick,
+			Parent = wallsFolder,
+		})
+		wall:SetAttribute("Index", i)
+
+		local gui = Instance.new("SurfaceGui")
+		gui.Name = "Info"
+		gui.Face = Enum.NormalId.Back -- смотрит на игрока, который идёт со спавна
+		gui.SizingMode = Enum.SurfaceGuiSizingMode.PixelsPerStud
+		gui.PixelsPerStud = 20
+		gui.LightInfluence = 0
+		gui.Parent = wall
+
+		makeLabel(gui, "Number", "СТЕНА " .. i .. "/" .. wallCount, UDim2.fromScale(0.5, 0.1), UDim2.fromScale(0.25, 0.08))
+		makeLabel(gui, "Title", wallConfig.name, UDim2.fromScale(0.9, 0.2), UDim2.fromScale(0.05, 0.2))
+		makeLabel(
+			gui,
+			"HP",
+			"❤ " .. Format.num(wallConfig.hp),
+			UDim2.fromScale(0.8, 0.16),
+			UDim2.fromScale(0.1, 0.43),
+			Color3.fromRGB(255, 90, 90)
+		)
+		makeLabel(
+			gui,
+			"Reward",
+			"💰 +" .. Format.num(wallConfig.reward),
+			UDim2.fromScale(0.6, 0.12),
+			UDim2.fromScale(0.2, 0.62),
+			Color3.fromRGB(120, 255, 120)
+		)
+		makeLabel(
+			gui,
+			"Caption",
+			wallConfig.caption or "",
+			UDim2.fromScale(0.8, 0.1),
+			UDim2.fromScale(0.1, 0.78),
+			Color3.fromRGB(255, 240, 200)
+		)
+
+		wallParts[i] = wall
+	end
+
+	-- Табличка «Зона 2» перед первой стеной второй зоны
+	for i, wallConfig in ipairs(Config.Walls) do
+		if wallConfig.zone == 2 then
+			local zoneSign = makePart({
+				Name = "ZoneSign",
+				Size = Vector3.new(1, 1, 1),
+				Position = Vector3.new(0, M.WallHeight + 10, wallZ(i) + 4),
+				Transparency = 1,
+				CanCollide = false,
+				CanQuery = false,
+				Parent = decor,
+			})
+			makeBillboard(zoneSign, Vector2.new(40, 8), Vector3.zero, {
+				{ text = "🌍 ЗОНА 2: МИР МЕМОВ", color = Color3.fromRGB(0, 255, 200) },
+				{ text = "здесь стены по-настоящему толстые 💀", color = Color3.new(1, 1, 1) },
+			})
+			break
+		end
+	end
+
+	-- Доски лидеров за спавном (повёрнуты к дорожке)
+	for _, info in ipairs({
+		{ key = "Wins", title = "🏆 ТОП ПОБЕД", x = -18 },
+		{ key = "Power", title = "⚡ ТОП СИЛЫ", x = 18 },
+	}) do
+		local board = makePart({
+			Name = "Leaderboard_" .. info.key,
+			Size = Vector3.new(22, 18, 1),
+			Position = Vector3.new(info.x, 12, startZ - 3),
+			Color = Color3.fromRGB(25, 25, 35),
+			Parent = decor,
+		})
+		makePart({
+			Name = "BoardLeg",
+			Size = Vector3.new(1, 3, 1),
+			Position = Vector3.new(info.x, 1.5, startZ - 3),
+			Color = Color3.fromRGB(25, 25, 35),
+			Parent = decor,
+		})
+		local gui = Instance.new("SurfaceGui")
+		gui.Name = "Board"
+		gui.Face = Enum.NormalId.Front
+		gui.SizingMode = Enum.SurfaceGuiSizingMode.PixelsPerStud
+		gui.PixelsPerStud = 25
+		gui.LightInfluence = 0
+		gui.Parent = board
+		makeLabel(gui, "Title", info.title, UDim2.fromScale(0.9, 0.12), UDim2.fromScale(0.05, 0.02), Color3.fromRGB(255, 230, 60))
+		local rows = {}
+		for row = 1, Config.LEADERBOARD_SIZE do
+			rows[row] = makeLabel(
+				gui,
+				"Row" .. row,
+				if row == 1 then "загрузка..." else "",
+				UDim2.fromScale(0.9, 0.075),
+				UDim2.fromScale(0.05, 0.16 + (row - 1) * 0.082)
+			)
+			rows[row].TextXAlignment = Enum.TextXAlignment.Left
+		end
+		boards[info.key] = rows
+	end
+
+	-- Финиш
+	local trophy = makePart({
+		Name = "Trophy",
+		Shape = Enum.PartType.Cylinder,
+		Size = Vector3.new(8, 8, 8),
+		CFrame = CFrame.new(0, 4, endZ + 15) * CFrame.Angles(0, 0, math.rad(90)),
+		Color = Color3.fromRGB(255, 215, 0),
+		Material = Enum.Material.Foil,
+		Parent = decor,
+	})
+	makeBillboard(trophy, Vector2.new(30, 8), Vector3.new(0, 14, 0), {
+		{ text = "🏆 ТЫ ЛЕГЕНДА КРОССОВОК 🏆", color = Color3.fromRGB(255, 230, 60) },
+		{ text = "+1 победа • скоро телепорт на спавн", color = Color3.new(1, 1, 1) },
+	})
+
+	root.Parent = workspace
+	return root
+end
+
+function MapBuilder.getWall(index)
+	return wallParts[index]
+end
+
+-- строки доски лидеров: key = "Wins" или "Power"
+function MapBuilder.getBoardRows(key)
+	return boards[key]
+end
+
+function MapBuilder.getSpawn()
+	return spawnLocation
+end
+
+return MapBuilder
+]]></string>
+        </Properties>
+      </Item>
+    </Item>
+  </Item>
+  <Item class="StarterPlayer" referent="10">
+    <Properties>
+      <string name="Name">StarterPlayer</string>
+    </Properties>
+    <Item class="StarterPlayerScripts" referent="11">
+      <Properties>
+        <string name="Name">StarterPlayerScripts</string>
+      </Properties>
+      <Item class="Folder" referent="12">
+        <Properties>
+          <string name="Name">Client</string>
+        </Properties>
+        <Item class="LocalScript" referent="13">
+          <Properties>
+            <string name="Name">Client</string>
+            <string name="Source"><![CDATA[-- 🎮 Клиент: интерфейс, удары, звуки, мемы и эффекты.
+
+local Players = game:GetService("Players")
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local UserInputService = game:GetService("UserInputService")
+local TweenService = game:GetService("TweenService")
+local RunService = game:GetService("RunService")
+local SoundService = game:GetService("SoundService")
+local MarketplaceService = game:GetService("MarketplaceService")
+local Debris = game:GetService("Debris")
+
+local player = Players.LocalPlayer
+
+local Shared = ReplicatedStorage:WaitForChild("Shared")
+local Config = require(Shared:WaitForChild("Config"))
+local Format = require(Shared:WaitForChild("Format"))
+local PetBuilder = require(Shared:WaitForChild("PetBuilder"))
+
+local Remotes = ReplicatedStorage:WaitForChild("Remotes")
+local HitRemote = Remotes:WaitForChild("Hit")
+local BuyRemote = Remotes:WaitForChild("BuySneaker")
+local BuyPetRemote = Remotes:WaitForChild("BuyPet")
+local RebirthRemote = Remotes:WaitForChild("Rebirth")
+local StateRemote = Remotes:WaitForChild("State")
+local NotifyRemote = Remotes:WaitForChild("Notify")
+
+local map = workspace:WaitForChild("SneakerMap")
+local wallsFolder = map:WaitForChild("Walls")
+local displaysFolder = map:WaitForChild("Displays")
+
+local FONT = Enum.Font.FredokaOne
+
+local state = {
+	power = 0,
+	cash = 0,
+	wins = 0,
+	rebirths = 0,
+	sneakers = {},
+	pets = {},
+	passes = {},
+	broken = 0,
+	currentHp = nil,
+	gain = Config.BASE_GAIN,
+}
+local soundOn = true
+local autoHit = false
+local lastHit = 0
+local lastHint = 0
+
+---------------------------------------------------------------------
+-- 🔊 Звуки
+---------------------------------------------------------------------
+local function pick(entry)
+	if type(entry) == "table" then
+		if #entry == 0 then
+			return nil
+		end
+		return entry[math.random(1, #entry)]
+	end
+	return entry
+end
+
+local function playSound(entry, volume, speed)
+	if not soundOn then
+		return
+	end
+	local id = pick(entry)
+	if not id or id == "" then
+		return
+	end
+	local sound = Instance.new("Sound")
+	sound.SoundId = id
+	sound.Volume = volume or 0.7
+	sound.PlaybackSpeed = speed or 1
+	sound.Parent = SoundService
+	sound:Play()
+	Debris:AddItem(sound, 10)
+end
+
+local music
+if Config.Sounds.Music and Config.Sounds.Music ~= "" then
+	music = Instance.new("Sound")
+	music.SoundId = Config.Sounds.Music
+	music.Looped = true
+	music.Volume = 0.25
+	music.Parent = SoundService
+	music:Play()
+end
+
+---------------------------------------------------------------------
+-- UI-помощники
+---------------------------------------------------------------------
+local function new(className, props, children)
+	local inst = Instance.new(className)
+	for key, value in pairs(props or {}) do
+		if key ~= "Parent" then
+			inst[key] = value
+		end
+	end
+	for _, child in ipairs(children or {}) do
+		child.Parent = inst
+	end
+	if props and props.Parent then
+		inst.Parent = props.Parent
+	end
+	return inst
+end
+
+local function corner(radius)
+	return new("UICorner", { CornerRadius = UDim.new(0, radius or 12) })
+end
+
+local function stroke(color, thickness)
+	return new("UIStroke", {
+		Color = color or Color3.new(0, 0, 0),
+		Thickness = thickness or 3,
+		ApplyStrokeMode = Enum.ApplyStrokeMode.Border,
+	})
+end
+
+local function label(props)
+	props.BackgroundTransparency = props.BackgroundTransparency or 1
+	props.Font = props.Font or FONT
+	props.TextScaled = true
+	props.TextColor3 = props.TextColor3 or Color3.new(1, 1, 1)
+	props.TextStrokeTransparency = props.TextStrokeTransparency or 0
+	return new("TextLabel", props)
+end
+
+local function pressAnim(button)
+	local scale = new("UIScale", { Parent = button })
+	button.MouseButton1Down:Connect(function()
+		TweenService:Create(scale, TweenInfo.new(0.06), { Scale = 0.92 }):Play()
+	end)
+	button.MouseButton1Up:Connect(function()
+		TweenService:Create(scale, TweenInfo.new(0.1), { Scale = 1 }):Play()
+	end)
+	button.MouseLeave:Connect(function()
+		TweenService:Create(scale, TweenInfo.new(0.1), { Scale = 1 }):Play()
+	end)
+end
+
+local function button(props)
+	props.Font = FONT
+	props.TextScaled = true
+	props.TextColor3 = Color3.new(1, 1, 1)
+	props.TextStrokeTransparency = 0
+	props.AutoButtonColor = true
+	local btn = new("TextButton", props, { corner(12), stroke(Color3.new(0, 0, 0), 3) })
+	pressAnim(btn)
+	return btn
+end
+
+---------------------------------------------------------------------
+-- Интерфейс
+---------------------------------------------------------------------
+local gui = new("ScreenGui", {
+	Name = "SneakerWallUI",
+	ResetOnSpawn = false,
+	ZIndexBehavior = Enum.ZIndexBehavior.Sibling,
+	Parent = player:WaitForChild("PlayerGui"),
+})
+local uiScale = new("UIScale", { Parent = gui })
+local function updateScale()
+	local camera = workspace.CurrentCamera
+	if camera then
+		uiScale.Scale = math.clamp(camera.ViewportSize.Y / 800, 0.55, 1.1)
+	end
+end
+updateScale()
+workspace.CurrentCamera:GetPropertyChangedSignal("ViewportSize"):Connect(updateScale)
+
+-- Сила сверху по центру
+local topPanel = new("Frame", {
+	AnchorPoint = Vector2.new(0.5, 0),
+	Position = UDim2.new(0.5, 0, 0, 6),
+	Size = UDim2.fromOffset(380, 96),
+	BackgroundColor3 = Color3.fromRGB(25, 25, 35),
+	BackgroundTransparency = 0.15,
+	Parent = gui,
+}, { corner(16), stroke(Color3.fromRGB(255, 220, 60), 3) })
+local powerLabel = label({
+	Text = "⚡ 0",
+	Size = UDim2.new(1, -20, 0.62, 0),
+	Position = UDim2.fromOffset(10, 4),
+	TextColor3 = Color3.fromRGB(255, 230, 60),
+	Parent = topPanel,
+})
+local powerScale = new("UIScale", { Parent = powerLabel })
+local gainLabel = label({
+	Text = "+1 ⚡ / сек",
+	Size = UDim2.new(1, -20, 0.3, 0),
+	Position = UDim2.new(0, 10, 0.64, 0),
+	TextColor3 = Color3.fromRGB(0, 255, 200),
+	Parent = topPanel,
+})
+
+-- Левая панель: статы и кнопки
+local leftPanel = new("Frame", {
+	AnchorPoint = Vector2.new(0, 0.5),
+	Position = UDim2.new(0, 10, 0.5, 0),
+	Size = UDim2.fromOffset(210, 480),
+	BackgroundTransparency = 1,
+	Parent = gui,
+}, {
+	new("UIListLayout", { Padding = UDim.new(0, 8), SortOrder = Enum.SortOrder.LayoutOrder }),
+})
+
+local statsBox = new("Frame", {
+	Size = UDim2.fromOffset(210, 110),
+	BackgroundColor3 = Color3.fromRGB(25, 25, 35),
+	BackgroundTransparency = 0.15,
+	LayoutOrder = 1,
+	Parent = leftPanel,
+}, { corner(14), stroke(Color3.new(0, 0, 0), 3) })
+local cashLabel = label({
+	Text = "💰 0",
+	Size = UDim2.new(1, -16, 0, 36),
+	Position = UDim2.fromOffset(8, 4),
+	TextXAlignment = Enum.TextXAlignment.Left,
+	TextColor3 = Color3.fromRGB(120, 255, 120),
+	Parent = statsBox,
+})
+local winsLabel = label({
+	Text = "🏆 0",
+	Size = UDim2.new(1, -16, 0, 30),
+	Position = UDim2.fromOffset(8, 42),
+	TextXAlignment = Enum.TextXAlignment.Left,
+	Parent = statsBox,
+})
+local rebirthLabel = label({
+	Text = "🔁 0",
+	Size = UDim2.new(1, -16, 0, 30),
+	Position = UDim2.fromOffset(8, 74),
+	TextXAlignment = Enum.TextXAlignment.Left,
+	Parent = statsBox,
+})
+
+local shopButton = button({
+	Text = "👟 Кроссовки",
+	Size = UDim2.fromOffset(210, 50),
+	BackgroundColor3 = Color3.fromRGB(255, 120, 40),
+	LayoutOrder = 2,
+	Parent = leftPanel,
+})
+local petButton = button({
+	Text = "🐾 Питомцы",
+	Size = UDim2.fromOffset(210, 50),
+	BackgroundColor3 = Color3.fromRGB(240, 90, 160),
+	LayoutOrder = 3,
+	Parent = leftPanel,
+})
+local passButton = button({
+	Text = "💎 Game Pass",
+	Size = UDim2.fromOffset(210, 50),
+	BackgroundColor3 = Color3.fromRGB(0, 170, 120),
+	LayoutOrder = 4,
+	Parent = leftPanel,
+})
+local rebirthButton = button({
+	Text = "🔁 Ребёрт",
+	Size = UDim2.fromOffset(210, 50),
+	BackgroundColor3 = Color3.fromRGB(170, 80, 255),
+	LayoutOrder = 5,
+	Parent = leftPanel,
+})
+local autoButton = button({
+	Text = "🤖 Авто: ВЫКЛ",
+	Size = UDim2.fromOffset(210, 44),
+	BackgroundColor3 = Color3.fromRGB(90, 90, 110),
+	LayoutOrder = 6,
+	Parent = leftPanel,
+})
+local soundButton = button({
+	Text = "🔊 Звук: ВКЛ",
+	Size = UDim2.fromOffset(210, 44),
+	BackgroundColor3 = Color3.fromRGB(60, 150, 230),
+	LayoutOrder = 7,
+	Parent = leftPanel,
+})
+
+-- Большая кнопка удара снизу (для телефонов)
+local hitButton = button({
+	Text = "👊 УДАР!",
+	AnchorPoint = Vector2.new(0.5, 1),
+	Position = UDim2.new(0.5, 0, 1, -16),
+	Size = UDim2.fromOffset(230, 74),
+	BackgroundColor3 = Color3.fromRGB(230, 50, 60),
+	Parent = gui,
+})
+
+-- Слой для мемных надписей
+local popupLayer = new("Frame", {
+	Size = UDim2.fromScale(1, 1),
+	BackgroundTransparency = 1,
+	ZIndex = 50,
+	Parent = gui,
+})
+
+---------------------------------------------------------------------
+-- Окно магазина
+---------------------------------------------------------------------
+local function makeWindow(title, height)
+	local window = new("Frame", {
+		AnchorPoint = Vector2.new(0.5, 0.5),
+		Position = UDim2.fromScale(0.5, 0.5),
+		Size = UDim2.fromOffset(500, height),
+		BackgroundColor3 = Color3.fromRGB(30, 30, 42),
+		Visible = false,
+		ZIndex = 20,
+		Parent = gui,
+	}, { corner(18), stroke(Color3.fromRGB(255, 255, 255), 3) })
+	label({
+		Text = title,
+		Size = UDim2.new(1, -80, 0, 50),
+		Position = UDim2.fromOffset(16, 8),
+		TextXAlignment = Enum.TextXAlignment.Left,
+		ZIndex = 21,
+		Parent = window,
+	})
+	local close = button({
+		Text = "X",
+		Size = UDim2.fromOffset(46, 46),
+		Position = UDim2.new(1, -56, 0, 10),
+		BackgroundColor3 = Color3.fromRGB(230, 50, 60),
+		ZIndex = 21,
+		Parent = window,
+	})
+	close.MouseButton1Click:Connect(function()
+		window.Visible = false
+	end)
+	return window
+end
+
+local function makeList(window)
+	return new("ScrollingFrame", {
+		Position = UDim2.fromOffset(12, 66),
+		Size = UDim2.new(1, -24, 1, -78),
+		BackgroundTransparency = 1,
+		BorderSizePixel = 0,
+		ScrollBarThickness = 8,
+		AutomaticCanvasSize = Enum.AutomaticSize.Y,
+		CanvasSize = UDim2.new(),
+		ZIndex = 21,
+		Parent = window,
+	}, {
+		new("UIListLayout", { Padding = UDim.new(0, 8), SortOrder = Enum.SortOrder.LayoutOrder }),
+	})
+end
+
+-- строка товара: иконка, название, описание, кнопка
+local function makeRow(list, index, title, icon, iconColor, iconStroke, onBuy)
+	local row = new("Frame", {
+		Size = UDim2.new(1, -12, 0, 76),
+		BackgroundColor3 = Color3.fromRGB(45, 45, 60),
+		LayoutOrder = index,
+		ZIndex = 22,
+		Parent = list,
+	}, { corner(12) })
+	new("Frame", {
+		Size = UDim2.fromOffset(60, 60),
+		Position = UDim2.fromOffset(8, 8),
+		BackgroundColor3 = iconColor,
+		ZIndex = 23,
+		Parent = row,
+	}, {
+		corner(10),
+		stroke(iconStroke or Color3.new(1, 1, 1), 3),
+		label({ Text = icon, Size = UDim2.fromScale(1, 1), ZIndex = 24 }),
+	})
+	label({
+		Text = title,
+		Size = UDim2.new(1, -230, 0, 32),
+		Position = UDim2.fromOffset(78, 6),
+		TextXAlignment = Enum.TextXAlignment.Left,
+		ZIndex = 23,
+		Parent = row,
+	})
+	local info = label({
+		Text = "",
+		Size = UDim2.new(1, -230, 0, 26),
+		Position = UDim2.fromOffset(78, 42),
+		TextXAlignment = Enum.TextXAlignment.Left,
+		TextColor3 = Color3.fromRGB(255, 230, 60),
+		ZIndex = 23,
+		Parent = row,
+	})
+	local buy = button({
+		Text = "",
+		Size = UDim2.fromOffset(130, 56),
+		Position = UDim2.new(1, -140, 0, 10),
+		BackgroundColor3 = Color3.fromRGB(60, 200, 90),
+		ZIndex = 23,
+		Parent = row,
+	})
+	buy.MouseButton1Click:Connect(onBuy)
+	return { info = info, buy = buy }
+end
+
+local shopWindow = makeWindow("👟 МАГАЗИН КРОССОВОК", 470)
+local shopList = makeList(shopWindow)
+local shopRows = {}
+for index, sneaker in ipairs(Config.Sneakers) do
+	shopRows[sneaker.id] = makeRow(shopList, index, sneaker.name, "👟", sneaker.color, sneaker.accent, function()
+		BuyRemote:FireServer(sneaker.id)
+	end)
+end
+
+local petWindow = makeWindow("🐾 ПИТОМЦЫ", 470)
+local petList = makeList(petWindow)
+local petRows = {}
+for index, pet in ipairs(Config.Pets) do
+	petRows[pet.id] = makeRow(petList, index, pet.name, pet.emoji, pet.color, nil, function()
+		BuyPetRemote:FireServer(pet.id)
+	end)
+end
+
+local passWindow = makeWindow("💎 GAME PASS", 340)
+local passList = makeList(passWindow)
+local passRows = {}
+local popup -- объявлен ниже
+for index, pass in ipairs(Config.GamePasses) do
+	passRows[pass.key] = makeRow(passList, index, pass.name, "💎", Color3.fromRGB(0, 170, 120), nil, function()
+		if state.passes[pass.key] then
+			return
+		end
+		if not pass.id or pass.id <= 0 then
+			popup("Game Pass ещё не создан — впиши ID в Config 🛠️", Color3.fromRGB(255, 200, 120))
+			return
+		end
+		MarketplaceService:PromptGamePassPurchase(player, pass.id)
+	end)
+	passRows[pass.key].info.Text = pass.desc
+end
+
+---------------------------------------------------------------------
+-- Окно перерождения
+---------------------------------------------------------------------
+local rebirthWindow = makeWindow("🔁 ПЕРЕРОЖДЕНИЕ", 300)
+local rebirthInfo = label({
+	Text = "",
+	Size = UDim2.new(1, -40, 0, 130),
+	Position = UDim2.fromOffset(20, 66),
+	TextColor3 = Color3.fromRGB(230, 230, 255),
+	ZIndex = 21,
+	Parent = rebirthWindow,
+})
+local rebirthConfirm = button({
+	Text = "",
+	AnchorPoint = Vector2.new(0.5, 0),
+	Position = UDim2.new(0.5, 0, 0, 212),
+	Size = UDim2.fromOffset(300, 64),
+	BackgroundColor3 = Color3.fromRGB(170, 80, 255),
+	ZIndex = 21,
+	Parent = rebirthWindow,
+})
+rebirthConfirm.MouseButton1Click:Connect(function()
+	RebirthRemote:FireServer()
+	rebirthWindow.Visible = false
+end)
+
+---------------------------------------------------------------------
+-- Мемные попапы и эффекты
+---------------------------------------------------------------------
+function popup(text, color, big)
+	local size = if big then UDim2.fromOffset(700, 130) else UDim2.fromOffset(420, 70)
+	local popupLabel = label({
+		Text = text,
+		AnchorPoint = Vector2.new(0.5, 0.5),
+		Position = UDim2.fromScale(0.5 + (math.random() - 0.5) * 0.3, if big then 0.35 else 0.45 + (math.random() - 0.5) * 0.2),
+		Size = size,
+		Rotation = math.random(-12, 12),
+		TextColor3 = color or Color3.new(1, 1, 1),
+		ZIndex = 60,
+		Parent = popupLayer,
+	})
+	local scale = new("UIScale", { Scale = 0, Parent = popupLabel })
+	TweenService:Create(scale, TweenInfo.new(0.25, Enum.EasingStyle.Back, Enum.EasingDirection.Out), { Scale = 1 }):Play()
+	task.delay(if big then 1.8 else 0.9, function()
+		local info = TweenInfo.new(0.5)
+		TweenService:Create(popupLabel, info, {
+			TextTransparency = 1,
+			TextStrokeTransparency = 1,
+			Position = popupLabel.Position - UDim2.fromOffset(0, 60),
+		}):Play()
+		Debris:AddItem(popupLabel, 0.6)
+	end)
+end
+
+local function hint(text)
+	if os.clock() - lastHint < 2 then
+		return
+	end
+	lastHint = os.clock()
+	popup(text, Color3.fromRGB(255, 200, 200))
+end
+
+local function getRoot()
+	local character = player.Character
+	return character and character:FindFirstChild("HumanoidRootPart")
+end
+
+local function getWall(index)
+	return wallsFolder:FindFirstChild("Wall_" .. index)
+end
+
+local function shake(power)
+	local character = player.Character
+	local humanoid = character and character:FindFirstChildOfClass("Humanoid")
+	if not humanoid then
+		return
+	end
+	local p = power or 0.3
+	humanoid.CameraOffset = Vector3.new((math.random() - 0.5) * p, (math.random() - 0.5) * p, 0)
+	TweenService:Create(humanoid, TweenInfo.new(0.12), { CameraOffset = Vector3.zero }):Play()
+end
+
+-- точка на стене напротив игрока
+local function wallFacePoint(wall)
+	local root = getRoot()
+	local x = if root then math.clamp(root.Position.X, -wall.Size.X / 2 + 2, wall.Size.X / 2 - 2) else 0
+	local y = if root then root.Position.Y + 1 else 4
+	return Vector3.new(x, y, wall.Position.Z + wall.Size.Z / 2 + 0.5)
+end
+
+local function damageNumber(wall, text, color)
+	local position = wallFacePoint(wall) + Vector3.new((math.random() - 0.5) * 6, (math.random() - 0.5) * 3, 0)
+	local anchor = new("Part", {
+		Anchored = true,
+		CanCollide = false,
+		CanQuery = false,
+		CanTouch = false,
+		Transparency = 1,
+		Size = Vector3.new(0.2, 0.2, 0.2),
+		Position = position,
+		Parent = workspace,
+	})
+	local billboard = new("BillboardGui", {
+		Size = UDim2.fromOffset(180, 60),
+		AlwaysOnTop = true,
+		LightInfluence = 0,
+		Parent = anchor,
+	})
+	local text3d = label({
+		Text = text,
+		Size = UDim2.fromScale(1, 1),
+		TextColor3 = color or Color3.fromRGB(255, 230, 60),
+		Parent = billboard,
+	})
+	TweenService:Create(anchor, TweenInfo.new(0.8), { Position = position + Vector3.new(0, 5, 0) }):Play()
+	TweenService:Create(text3d, TweenInfo.new(0.8), { TextTransparency = 1, TextStrokeTransparency = 1 }):Play()
+	Debris:AddItem(anchor, 0.9)
+end
+
+local function explodeWall(wall)
+	local origin = wallFacePoint(wall)
+	for _ = 1, 16 do
+		local size = 0.8 + math.random() * 1.8
+		local chunk = new("Part", {
+			Size = Vector3.new(size, size, size),
+			Position = origin + Vector3.new((math.random() - 0.5) * 10, (math.random() - 0.5) * 6, 0),
+			Color = wall.Color,
+			Material = wall.Material,
+			CanQuery = false,
+			CanTouch = false,
+			Parent = workspace,
+		})
+		chunk.AssemblyLinearVelocity = Vector3.new((math.random() - 0.5) * 60, 20 + math.random() * 40, 10 + math.random() * 30)
+		chunk.AssemblyAngularVelocity = Vector3.new(math.random() * 10, math.random() * 10, math.random() * 10)
+		Debris:AddItem(chunk, 3)
+	end
+end
+
+---------------------------------------------------------------------
+-- Обновление UI и стен
+---------------------------------------------------------------------
+local function updateWalls()
+	for index, wallConfig in ipairs(Config.Walls) do
+		local wall = getWall(index)
+		if wall then
+			local isBroken = index <= state.broken
+			-- меняем только у себя: другие игроки видят свои стены
+			wall.CanCollide = not isBroken
+			wall.Transparency = if isBroken then 0.85 else 0
+			local info = wall:FindFirstChild("Info")
+			local hpLabel = info and info:FindFirstChild("HP")
+			if hpLabel then
+				if isBroken then
+					hpLabel.Text = "✅ СЛОМАНА"
+				else
+					local hp = if index == state.broken + 1 and state.currentHp then state.currentHp else wallConfig.hp
+					hpLabel.Text = "❤ " .. Format.num(math.max(0, hp)) .. " / " .. Format.num(wallConfig.hp)
+				end
+			end
+		end
+	end
+end
+
+local function updateShop()
+	for _, sneaker in ipairs(Config.Sneakers) do
+		local row = shopRows[sneaker.id]
+		local level = state.sneakers[sneaker.id] or 0
+		local price = Config.getPrice(sneaker, level)
+		row.info.Text = "+" .. Format.num(sneaker.gain) .. " ⚡/сек • у тебя: " .. level
+		row.buy.Text = "💰 " .. Format.num(price)
+		row.buy.BackgroundColor3 = if state.cash >= price then Color3.fromRGB(60, 200, 90) else Color3.fromRGB(110, 110, 120)
+	end
+end
+
+local function updatePets()
+	local best = Config.getBestPet(state.pets)
+	for _, pet in ipairs(Config.Pets) do
+		local row = petRows[pet.id]
+		row.info.Text = "x" .. pet.mult .. " к приросту силы"
+		if best and best.id == pet.id then
+			row.buy.Text = "⭐ Летает"
+			row.buy.BackgroundColor3 = Color3.fromRGB(255, 170, 0)
+		elseif state.pets[pet.id] then
+			row.buy.Text = "✅ Есть"
+			row.buy.BackgroundColor3 = Color3.fromRGB(90, 90, 110)
+		else
+			row.buy.Text = "💰 " .. Format.num(pet.price)
+			row.buy.BackgroundColor3 = if state.cash >= pet.price then Color3.fromRGB(60, 200, 90) else Color3.fromRGB(110, 110, 120)
+		end
+	end
+end
+
+local function updatePasses()
+	for _, pass in ipairs(Config.GamePasses) do
+		local row = passRows[pass.key]
+		if state.passes[pass.key] then
+			row.buy.Text = "✅ Куплено"
+			row.buy.BackgroundColor3 = Color3.fromRGB(90, 90, 110)
+		else
+			row.buy.Text = "R$ Купить"
+			row.buy.BackgroundColor3 = Color3.fromRGB(0, 170, 120)
+		end
+	end
+end
+
+local function updateRebirth()
+	local cost = Config.getRebirthCost(state.rebirths)
+	local nextBonus = math.floor((1 + (state.rebirths + 1) * Config.REBIRTH_BONUS) * 100)
+	rebirthInfo.Text = "Сбросит силу, деньги и кроссовки,\nно навсегда даст x"
+		.. string.format("%.1f", nextBonus / 100)
+		.. " к приросту силы!\nЦена: 💰 "
+		.. Format.num(cost)
+	rebirthConfirm.Text = if state.cash >= cost then "ПЕРЕРОДИТЬСЯ 🔁" else "Нужно 💰 " .. Format.num(cost)
+	rebirthConfirm.BackgroundColor3 = if state.cash >= cost then Color3.fromRGB(170, 80, 255) else Color3.fromRGB(110, 110, 120)
+end
+
+local function updateUI()
+	powerLabel.Text = "⚡ " .. Format.num(state.power)
+	gainLabel.Text = "+" .. Format.num(state.gain) .. " ⚡ / сек"
+	cashLabel.Text = "💰 " .. Format.num(state.cash)
+	winsLabel.Text = "🏆 Победы: " .. Format.num(state.wins)
+	rebirthLabel.Text = "🔁 Ребёрты: " .. Format.num(state.rebirths)
+	updateShop()
+	updatePets()
+	updatePasses()
+	updateRebirth()
+end
+
+---------------------------------------------------------------------
+-- Удар
+---------------------------------------------------------------------
+local function tryHit()
+	local root = getRoot()
+	if not root then
+		return
+	end
+	local index = state.broken + 1
+	local wall = getWall(index)
+	if not wall then
+		return
+	end
+	local distance = math.abs(root.Position.Z - wall.Position.Z) - wall.Size.Z / 2
+	if distance > Config.HIT_RANGE then
+		hint("Подойди к стене! 🧱")
+		return
+	end
+	if os.clock() - lastHit < Config.HIT_COOLDOWN then
+		return
+	end
+	lastHit = os.clock()
+	HitRemote:FireServer(index)
+	playSound(Config.Sounds.Hit, 0.5, 0.9 + math.random() * 0.3)
+	shake(0.25)
+end
+
+hitButton.MouseButton1Click:Connect(tryHit)
+
+UserInputService.InputBegan:Connect(function(input, gameProcessed)
+	if gameProcessed then
+		return
+	end
+	if input.UserInputType == Enum.UserInputType.MouseButton1
+		or input.UserInputType == Enum.UserInputType.Touch
+		or input.KeyCode == Enum.KeyCode.F
+	then
+		tryHit()
+	end
+end)
+
+task.spawn(function()
+	while true do
+		task.wait(if state.passes.FastAuto then Config.AUTO_HIT_FAST_INTERVAL else Config.AUTO_HIT_INTERVAL)
+		if autoHit then
+			local root = getRoot()
+			local wall = getWall(state.broken + 1)
+			if root and wall and math.abs(root.Position.Z - wall.Position.Z) - wall.Size.Z / 2 <= Config.HIT_RANGE then
+				tryHit()
+			end
+		end
+	end
+end)
+
+---------------------------------------------------------------------
+-- Кнопки
+---------------------------------------------------------------------
+
+local windows = { shopWindow, petWindow, passWindow, rebirthWindow }
+local function toggleWindow(window)
+	local show = not window.Visible
+	for _, other in ipairs(windows) do
+		other.Visible = false
+	end
+	window.Visible = show
+end
+
+rebirthButton.MouseButton1Click:Connect(function()
+	toggleWindow(rebirthWindow)
+end)
+petButton.MouseButton1Click:Connect(function()
+	toggleWindow(petWindow)
+end)
+passButton.MouseButton1Click:Connect(function()
+	toggleWindow(passWindow)
+end)
+
+shopButton.MouseButton1Click:Connect(function()
+	toggleWindow(shopWindow)
+end)
+
+autoButton.MouseButton1Click:Connect(function()
+	autoHit = not autoHit
+	autoButton.Text = if autoHit then "🤖 Авто: ВКЛ" else "🤖 Авто: ВЫКЛ"
+	autoButton.BackgroundColor3 = if autoHit then Color3.fromRGB(60, 200, 90) else Color3.fromRGB(90, 90, 110)
+end)
+
+soundButton.MouseButton1Click:Connect(function()
+	soundOn = not soundOn
+	soundButton.Text = if soundOn then "🔊 Звук: ВКЛ" else "🔇 Звук: ВЫКЛ"
+	if music then
+		music.Volume = if soundOn then 0.25 else 0
+	end
+end)
+
+---------------------------------------------------------------------
+-- События от сервера
+---------------------------------------------------------------------
+StateRemote.OnClientEvent:Connect(function(newState)
+	local oldPower = state.power
+	state = newState
+	state.sneakers = state.sneakers or {}
+	state.pets = state.pets or {}
+	state.passes = state.passes or {}
+	updateUI()
+	updateWalls()
+	if state.power > oldPower then
+		powerScale.Scale = 1.15
+		TweenService:Create(powerScale, TweenInfo.new(0.2), { Scale = 1 }):Play()
+	end
+end)
+
+NotifyRemote.OnClientEvent:Connect(function(kind, data)
+	if kind == "hit" then
+		state.currentHp = data.hp
+		updateWalls()
+		local wall = getWall(data.wall)
+		if wall then
+			damageNumber(wall, "-" .. Format.num(data.damage))
+		end
+	elseif kind == "break" then
+		local wall = getWall(data.wall)
+		if wall then
+			damageNumber(wall, "-" .. Format.num(data.damage))
+			explodeWall(wall)
+		end
+		shake(1.2)
+		playSound(Config.Sounds.WallBreak, 1)
+		task.delay(0.3, playSound, Config.Sounds.Memes, 0.8)
+		popup(pick(Config.MemeTexts), Color3.fromRGB(255, 230, 60), true)
+		popup("+💰 " .. Format.num(data.reward), Color3.fromRGB(120, 255, 120))
+	elseif kind == "win" then
+		playSound(Config.Sounds.Win, 1)
+		popup("🏆 ПОБЕДА! +1 🏆", Color3.fromRGB(255, 215, 0), true)
+	elseif kind == "buy" then
+		local sneaker = Config.getSneaker(data.id)
+		playSound(Config.Sounds.Buy, 0.9)
+		popup("👟 " .. (sneaker and sneaker.name or "Кроссы") .. " (ур. " .. data.level .. ")", Color3.fromRGB(0, 255, 200))
+	elseif kind == "pet" then
+		local pet = Config.getPet(data.id)
+		playSound(Config.Sounds.Buy, 0.9)
+		if pet then
+			popup(pet.emoji .. " " .. pet.name .. " теперь с тобой! x" .. pet.mult, Color3.fromRGB(255, 150, 220), true)
+		end
+	elseif kind == "pass" then
+		playSound(Config.Sounds.Win, 1)
+		popup("💎 " .. data.name .. " активирован!", Color3.fromRGB(0, 255, 200), true)
+	elseif kind == "rebirth" then
+		playSound(Config.Sounds.Rebirth, 1)
+		popup("🔁 ПЕРЕРОЖДЕНИЕ #" .. data.rebirths .. " — ТЫ СТАЛ СИЛЬНЕЕ", Color3.fromRGB(200, 140, 255), true)
+	elseif kind == "error" then
+		playSound(Config.Sounds.Error, 0.8)
+		popup(data.text or "BRUH 💀", Color3.fromRGB(255, 90, 90))
+	end
+end)
+
+-- стены могут подгружаться позже (StreamingEnabled) — обновляем, когда появляются
+wallsFolder.ChildAdded:Connect(function()
+	task.defer(updateWalls)
+end)
+
+---------------------------------------------------------------------
+-- Крутящиеся кроссовки на витринах
+---------------------------------------------------------------------
+local elapsed = 0
+RunService.RenderStepped:Connect(function(dt)
+	elapsed += dt
+	for _, model in ipairs(displaysFolder:GetChildren()) do
+		local base = model:GetAttribute("BasePos")
+		if model:IsA("Model") and base then
+			model:PivotTo(CFrame.new(base + Vector3.new(0, math.sin(elapsed * 2) * 0.4, 0)) * CFrame.Angles(0, elapsed, 0))
+		end
+	end
+end)
+
+---------------------------------------------------------------------
+-- 🐾 Питомцы летают за всеми игроками (рисуются у каждого клиента)
+---------------------------------------------------------------------
+local petModels = {} -- [Player] = { id, model }
+local petFolder = new("Folder", { Name = "LocalPets", Parent = workspace })
+
+RunService.RenderStepped:Connect(function(dt)
+	for _, other in ipairs(Players:GetPlayers()) do
+		local petId = other:GetAttribute("PetId")
+		local current = petModels[other]
+		if current and current.id ~= petId then
+			current.model:Destroy()
+			petModels[other] = nil
+			current = nil
+		end
+		local character = other.Character
+		local root = character and character:FindFirstChild("HumanoidRootPart")
+		local pet = petId and Config.getPet(petId)
+		if pet and root then
+			if not current then
+				local model = PetBuilder.build(pet)
+				model:PivotTo(root.CFrame)
+				model.Parent = petFolder
+				current = { id = petId, model = model }
+				petModels[other] = current
+			end
+			local bob = math.sin(elapsed * 3 + other.UserId) * 0.4
+			local target = root.CFrame * CFrame.new(3, 1.5 + bob, 3)
+			current.model:PivotTo(current.model:GetPivot():Lerp(target, math.clamp(dt * 8, 0, 1)))
+		elseif current then
+			current.model:Destroy()
+			petModels[other] = nil
+		end
+	end
+end)
+
+Players.PlayerRemoving:Connect(function(other)
+	local current = petModels[other]
+	if current then
+		current.model:Destroy()
+		petModels[other] = nil
+	end
+end)
+
+updateUI()
+updateWalls()
+]]></string>
+          </Properties>
+        </Item>
+      </Item>
+    </Item>
+  </Item>
+</roblox>

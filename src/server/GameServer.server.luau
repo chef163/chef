@@ -4,6 +4,7 @@
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local DataStoreService = game:GetService("DataStoreService")
+local MarketplaceService = game:GetService("MarketplaceService")
 
 local Shared = ReplicatedStorage:WaitForChild("Shared")
 local Config = require(Shared:WaitForChild("Config"))
@@ -26,6 +27,7 @@ end
 
 local HitRemote = newRemote("Hit")
 local BuyRemote = newRemote("BuySneaker")
+local BuyPetRemote = newRemote("BuyPet")
 local RebirthRemote = newRemote("Rebirth")
 local StateRemote = newRemote("State")
 local NotifyRemote = newRemote("Notify")
@@ -51,7 +53,7 @@ end
 local profiles = {} -- [Player] = { data, session, stats, loaded, canSave }
 
 local function defaultData()
-	return { power = 0, cash = 0, wins = 0, rebirths = 0, sneakers = {} }
+	return { power = 0, cash = 0, wins = 0, rebirths = 0, sneakers = {}, pets = {} }
 end
 
 local function loadData(player)
@@ -80,6 +82,13 @@ local function loadData(player)
 				end
 			end
 		end
+		if type(saved.pets) == "table" then
+			for id, owned in pairs(saved.pets) do
+				if Config.getPet(id) and owned == true then
+					data.pets[id] = true
+				end
+			end
+		end
 	end
 	return data, true
 end
@@ -96,6 +105,7 @@ local function saveData(player, profile)
 			wins = d.wins,
 			rebirths = d.rebirths,
 			sneakers = d.sneakers,
+			pets = d.pets,
 		})
 	end)
 	if not ok then
@@ -147,9 +157,11 @@ local function sendState(player)
 		wins = d.wins,
 		rebirths = d.rebirths,
 		sneakers = d.sneakers,
+		pets = d.pets,
+		passes = profile.passes,
 		broken = s.broken,
 		currentHp = s.currentHp,
-		gain = Config.getGain(d.sneakers, d.rebirths),
+		gain = Config.getGain(d, profile.passes),
 	})
 end
 
@@ -223,12 +235,55 @@ local function equipShoes(player)
 end
 
 ---------------------------------------------------------------------
+-- Питомец: сервер только ставит атрибут, летающую модельку рисуют клиенты
+---------------------------------------------------------------------
+local function equipPet(player)
+	local profile = profiles[player]
+	if not profile then
+		return
+	end
+	local pet = Config.getBestPet(profile.data.pets)
+	player:SetAttribute("PetId", if pet then pet.id else nil)
+end
+
+---------------------------------------------------------------------
+-- Game Pass'ы
+---------------------------------------------------------------------
+local function loadPasses(player, profile)
+	for _, pass in ipairs(Config.GamePasses) do
+		if pass.id and pass.id > 0 then
+			local ok, owns = pcall(function()
+				return MarketplaceService:UserOwnsGamePassAsync(player.UserId, pass.id)
+			end)
+			if ok and owns then
+				profile.passes[pass.key] = true
+			end
+		end
+	end
+end
+
+MarketplaceService.PromptGamePassPurchaseFinished:Connect(function(player, passId, purchased)
+	local profile = profiles[player]
+	if not purchased or not profile then
+		return
+	end
+	for _, pass in ipairs(Config.GamePasses) do
+		if pass.id == passId then
+			profile.passes[pass.key] = true
+			notify(player, "pass", { name = pass.name })
+			sendState(player)
+		end
+	end
+end)
+
+---------------------------------------------------------------------
 -- Вход / выход игроков
 ---------------------------------------------------------------------
 local function onPlayerAdded(player)
 	local profile = {
 		data = defaultData(),
 		session = { broken = 0, currentHp = nil, lastHit = 0 },
+		passes = {},
 		loaded = false,
 		canSave = false,
 	}
@@ -244,6 +299,7 @@ local function onPlayerAdded(player)
 	end)
 
 	local data, canSave = loadData(player)
+	loadPasses(player, profile)
 	if profiles[player] ~= profile then
 		return -- игрок успел выйти
 	end
@@ -254,6 +310,7 @@ local function onPlayerAdded(player)
 	if player.Character then
 		equipShoes(player)
 	end
+	equipPet(player)
 	sendState(player)
 end
 
@@ -307,7 +364,7 @@ task.spawn(function()
 		task.wait(Config.GAIN_INTERVAL)
 		for player, profile in pairs(profiles) do
 			if profile.loaded then
-				profile.data.power += Config.getGain(profile.data.sneakers, profile.data.rebirths)
+				profile.data.power += Config.getGain(profile.data, profile.passes)
 				sendState(player)
 			end
 		end
@@ -361,8 +418,9 @@ HitRemote.OnServerEvent:Connect(function(player, wallIndex)
 	-- стена сломана!
 	s.broken = wallIndex
 	s.currentHp = nil
-	d.cash += wallConfig.reward
-	notify(player, "break", { wall = wallIndex, reward = wallConfig.reward, damage = damage })
+	local reward = wallConfig.reward * (if profile.passes.DoubleCash then 2 else 1)
+	d.cash += reward
+	notify(player, "break", { wall = wallIndex, reward = reward, damage = damage })
 
 	if wallIndex >= #Config.Walls then
 		d.wins += 1
@@ -411,6 +469,31 @@ BuyRemote.OnServerEvent:Connect(function(player, sneakerId)
 end)
 
 ---------------------------------------------------------------------
+-- Покупка питомцев (один раз, навсегда)
+---------------------------------------------------------------------
+BuyPetRemote.OnServerEvent:Connect(function(player, petId)
+	local profile = profiles[player]
+	if not profile or not profile.loaded or typeof(petId) ~= "string" then
+		return
+	end
+	local pet = Config.getPet(petId)
+	local d = profile.data
+	if not pet or d.pets[petId] then
+		return
+	end
+	if d.cash < pet.price then
+		notify(player, "error", { text = "Не хватает денег! 💸 Нужно " .. Format.num(pet.price) })
+		return
+	end
+
+	d.cash -= pet.price
+	d.pets[petId] = true
+	equipPet(player)
+	notify(player, "pet", { id = petId })
+	sendState(player)
+end)
+
+---------------------------------------------------------------------
 -- Перерождение: сброс силы, денег и кроссовок ради постоянного множителя
 ---------------------------------------------------------------------
 RebirthRemote.OnServerEvent:Connect(function(player)
@@ -428,7 +511,7 @@ RebirthRemote.OnServerEvent:Connect(function(player)
 	d.rebirths += 1
 	d.power = 0
 	d.cash = 0
-	d.sneakers = {}
+	d.sneakers = {} -- питомцы остаются
 	s.broken = 0
 	s.currentHp = nil
 
@@ -436,4 +519,92 @@ RebirthRemote.OnServerEvent:Connect(function(player)
 	teleportToSpawn(player)
 	notify(player, "rebirth", { rebirths = d.rebirths })
 	sendState(player)
+end)
+
+---------------------------------------------------------------------
+-- 🏆 Глобальные таблицы лидеров на карте
+---------------------------------------------------------------------
+local nameCache = {}
+local function getName(userId)
+	if nameCache[userId] then
+		return nameCache[userId]
+	end
+	local ok, name = pcall(function()
+		return Players:GetNameFromUserIdAsync(userId)
+	end)
+	local result = if ok and name then name else "Игрок " .. tostring(userId)
+	nameCache[userId] = result
+	return result
+end
+
+local boardStores = {}
+for _, key in ipairs({ "Wins", "Power" }) do
+	local ok, result = pcall(function()
+		return DataStoreService:GetOrderedDataStore("SneakerWall_Top" .. key)
+	end)
+	if ok then
+		boardStores[key] = result
+	end
+end
+
+local function boardValue(key, data)
+	local value = if key == "Wins" then data.wins else data.power
+	return math.floor(math.clamp(value, 0, 2 ^ 53))
+end
+
+local function updateBoard(key)
+	local rows = MapBuilder.getBoardRows(key)
+	local ordered = boardStores[key]
+	if not rows then
+		return
+	end
+
+	local ok = pcall(function()
+		assert(ordered, "no store")
+		for player, profile in pairs(profiles) do
+			if profile.loaded and profile.canSave then
+				ordered:SetAsync(tostring(player.UserId), boardValue(key, profile.data))
+			end
+		end
+		local page = ordered:GetSortedAsync(false, Config.LEADERBOARD_SIZE):GetCurrentPage()
+		for i = 1, Config.LEADERBOARD_SIZE do
+			local entry = page[i]
+			if entry then
+				local medal = if i == 1 then "🥇" elseif i == 2 then "🥈" elseif i == 3 then "🥉" else "#" .. i
+				local userId = tonumber(entry.key) or 0
+				rows[i].Text = medal .. " " .. getName(userId) .. " — " .. Format.num(entry.value)
+			else
+				rows[i].Text = ""
+			end
+		end
+	end)
+
+	if not ok then
+		-- В Studio без API Services показываем локальный топ текущего сервера
+		local list = {}
+		for player, profile in pairs(profiles) do
+			if profile.loaded then
+				table.insert(list, { name = player.Name, value = boardValue(key, profile.data) })
+			end
+		end
+		table.sort(list, function(a, b)
+			return a.value > b.value
+		end)
+		for i = 1, Config.LEADERBOARD_SIZE do
+			local entry = list[i]
+			rows[i].Text = if entry then "#" .. i .. " " .. entry.name .. " — " .. Format.num(entry.value) else ""
+		end
+		if #list < Config.LEADERBOARD_SIZE then
+			rows[Config.LEADERBOARD_SIZE].Text = "(топ этого сервера)"
+		end
+	end
+end
+
+task.spawn(function()
+	task.wait(5)
+	while true do
+		updateBoard("Wins")
+		updateBoard("Power")
+		task.wait(Config.LEADERBOARD_UPDATE)
+	end
 end)
